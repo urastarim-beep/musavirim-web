@@ -13,6 +13,7 @@ const TOOL_META = {
 export default function ToolEmbed({ toolId }) {
   const meta = TOOL_META[toolId];
   const iframeRef = useRef(null);
+  const cloudRef = useRef({});
   const [err, setErr] = useState('');
   const [ready, setReady] = useState(false);
   const [tick, setTick] = useState(0);
@@ -23,7 +24,6 @@ export default function ToolEmbed({ toolId }) {
       setReady(false);
       setErr('');
       try {
-        const { data: { user } } = await supabase.auth.getUser();
         const { data, error } = await supabase
           .from('arac_ayarlari')
           .select('ayar')
@@ -33,22 +33,22 @@ export default function ToolEmbed({ toolId }) {
         const a = data?.ayar || {};
         if (cancelled) return;
 
+        cloudRef.current = a;
+
+        // Same-origin localStorage (MF / HKS native keys)
         if (meta.arac === 'muhasebe_fisi' && a.firmalar) {
           localStorage.setItem('mf_firmalar', JSON.stringify(a.firmalar));
         }
         if (meta.arac === 'hks' && a.accounts) {
-          // Eski bozuk encoding kalıntısını temizle, buluttaki düzgün adları yaz
           localStorage.setItem('hksAccounts', JSON.stringify(a.accounts));
         }
 
-        // iframe scripts read this before boot
-        sessionStorage.setItem('__MUSAVIRIM_CLOUD__', JSON.stringify(a));
         setReady(true);
         setTick((t) => t + 1);
       } catch (e) {
         if (!cancelled) {
           setErr(e.message);
-          sessionStorage.setItem('__MUSAVIRIM_CLOUD__', '{}');
+          cloudRef.current = {};
           setReady(true);
           setTick((t) => t + 1);
         }
@@ -59,9 +59,30 @@ export default function ToolEmbed({ toolId }) {
     };
   }, [toolId, meta.arac]);
 
+  function injectCloudIntoIframe() {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const payload = cloudRef.current || {};
+    try {
+      win.__MUSAVIRIM_CLOUD__ = payload;
+      win.sessionStorage.setItem('__MUSAVIRIM_CLOUD__', JSON.stringify(payload));
+      win.postMessage({ type: 'musavirim-cloud-data', payload }, '*');
+    } catch {
+      /* ignore */
+    }
+  }
+
   useEffect(() => {
     async function onMsg(ev) {
       if (!ev.data) return;
+
+      if (ev.data.type === 'musavirim-cloud-request') {
+        const win = iframeRef.current?.contentWindow;
+        if (win) {
+          win.postMessage({ type: 'musavirim-cloud-data', payload: cloudRef.current || {} }, '*');
+        }
+        return;
+      }
 
       if (ev.data.type === 'musavirim-download-xml') {
         const { reqId, form } = ev.data;
@@ -117,8 +138,11 @@ export default function ToolEmbed({ toolId }) {
 
       if (ev.data.type !== 'musavirim-save') return;
       const { arac, payload } = ev.data;
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
+      cloudRef.current = payload;
       await supabase.from('arac_ayarlari').upsert(
         { user_id: user.id, arac, ayar: payload, updated_at: new Date().toISOString() },
         { onConflict: 'user_id,arac' },
@@ -141,7 +165,11 @@ export default function ToolEmbed({ toolId }) {
         <strong>{meta.title}</strong>
         <span className="muted">Masaüstü arayüzü · veriler bulutta</span>
       </div>
-      {err && <div className="error-text" style={{ padding: '8px 16px' }}>{err}</div>}
+      {err && (
+        <div className="error-text" style={{ padding: '8px 16px' }}>
+          {err}
+        </div>
+      )}
       {!ready && <div className="center-screen">Veriler yükleniyor…</div>}
       {iframeSrc && (
         <iframe
@@ -149,6 +177,7 @@ export default function ToolEmbed({ toolId }) {
           title={meta.title}
           src={iframeSrc}
           className="tool-iframe"
+          onLoad={injectCloudIntoIframe}
         />
       )}
     </div>

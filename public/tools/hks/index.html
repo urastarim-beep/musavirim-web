@@ -934,6 +934,12 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
 
         function saveAccounts() {
             localStorage.setItem('hksAccounts', JSON.stringify(accounts));
+            try {
+                window.parent.postMessage(
+                    { type: 'musavirim-save', arac: 'hks', payload: { accounts } },
+                    '*'
+                );
+            } catch (e) { /* ignore */ }
             updateAccountUI();
         }
 

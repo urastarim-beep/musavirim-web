@@ -2,9 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'url';
+import { extractFirstExisting } from './extract-leveldb.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
+const outDir = path.join(root, 'import-data');
+fs.mkdirSync(outDir, { recursive: true });
 
 function loadEnv() {
   const envPath = path.join(root, '.env');
@@ -19,76 +22,6 @@ function loadEnv() {
 loadEnv();
 
 const APPDATA = process.env.APPDATA || '';
-const outDir = path.join(root, 'import-data');
-fs.mkdirSync(outDir, { recursive: true });
-
-function extractLocalStorage(logPath, key) {
-  if (!fs.existsSync(logPath)) return null;
-  const buf = fs.readFileSync(logPath);
-
-  // Chromium Local Storage often stores strings as UTF-16LE
-  const keyUtf16 = Buffer.alloc(key.length * 2);
-  for (let i = 0; i < key.length; i++) {
-    keyUtf16.writeUInt16LE(key.charCodeAt(i), i * 2);
-  }
-  let idx = buf.indexOf(keyUtf16);
-  let text = null;
-  if (idx >= 0) {
-    text = buf.slice(idx).toString('utf16le');
-  } else {
-    // fallback: strip nulls from utf8 misread
-    text = buf.toString('utf8').replace(/\0/g, '');
-    if (!text.includes(key)) return null;
-  }
-
-  const keyPos = text.indexOf(key);
-  if (keyPos < 0) return null;
-  let start = -1;
-  for (let i = keyPos + key.length; i < text.length; i++) {
-    if (text[i] === '[' || text[i] === '{') {
-      start = i;
-      break;
-    }
-  }
-  if (start < 0) return null;
-  const open = text[start];
-  const close = open === '[' ? ']' : '}';
-  let depth = 0;
-  let end = -1;
-  let inStr = false;
-  let esc = false;
-  for (let i = start; i < text.length; i++) {
-    const c = text[i];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (c === '\\') esc = true;
-      else if (c === '"') inStr = false;
-      continue;
-    }
-    if (c === '"') {
-      inStr = true;
-      continue;
-    }
-    if (c === open) depth++;
-    else if (c === close) {
-      depth--;
-      if (depth === 0) {
-        end = i;
-        break;
-      }
-    }
-  }
-  if (end < 0) return null;
-  let raw = text.slice(start, end + 1);
-  // LevelDB/UTF-16 artifacts: drop non-printable control chars
-  raw = raw.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
-  try {
-    return JSON.parse(raw);
-  } catch (e) {
-    console.warn('JSON parse:', key, e.message, 'snippet:', JSON.stringify(raw.slice(0, 60)));
-    return null;
-  }
-}
 
 function copyIfExists(src, name) {
   if (!fs.existsSync(src)) {
@@ -97,33 +30,49 @@ function copyIfExists(src, name) {
   }
   const dest = path.join(outDir, name);
   fs.copyFileSync(src, dest);
-  console.log('kopyalandi:', name);
+  console.log('kopyalandi:', name, fs.statSync(dest).size, 'bytes');
   return dest;
 }
 
+function writeJson(name, data) {
+  fs.writeFileSync(path.join(outDir, name), JSON.stringify(data, null, 2), 'utf8');
+}
+
 function dumpLocal() {
-  const hksLog = path.join(
-    APPDATA,
-    'musavirim/Partitions/musavirim-hks/Local Storage/leveldb/000003.log',
+  const hks = extractFirstExisting(
+    [
+      path.join(APPDATA, 'musavirim/Partitions/musavirim-hks/Local Storage/leveldb/000003.log'),
+      path.join(APPDATA, 'hks-bildirim-indirici/Local Storage/leveldb/000003.log'),
+    ],
+    'hksAccounts',
   );
-  const mfLog = path.join(
-    APPDATA,
-    'musavirim/Partitions/musavirim-mf/Local Storage/leveldb/000003.log',
+  const mf = extractFirstExisting(
+    [
+      path.join(APPDATA, 'musavirim/Partitions/musavirim-mf/Local Storage/leveldb/000003.log'),
+      path.join(APPDATA, 'muhasebe-fisi-olusturucu/Local Storage/leveldb/000003.log'),
+    ],
+    'mf_firmalar',
   );
 
-  const hks = extractLocalStorage(hksLog, 'hksAccounts');
-  const mf = extractLocalStorage(mfLog, 'mf_firmalar');
   if (hks) {
-    fs.writeFileSync(path.join(outDir, 'hksAccounts.json'), JSON.stringify(hks, null, 2));
-    console.log('hksAccounts:', Array.isArray(hks) ? hks.length : typeof hks);
+    writeJson('hksAccounts.json', hks.value);
+    console.log(
+      'hksAccounts:',
+      Array.isArray(hks.value) ? hks.value.length : typeof hks.value,
+      Array.isArray(hks.value) ? hks.value.map((a) => a.firmaAdi) : '',
+    );
   } else console.log('hksAccounts cikarilamadi');
+
   if (mf) {
-    fs.writeFileSync(path.join(outDir, 'mf_firmalar.json'), JSON.stringify(mf, null, 2));
-    console.log('mf_firmalar: ok');
+    writeJson('mf_firmalar.json', mf.value);
+    const names = Object.values(mf.value).map((f) => f?.name);
+    const stok = Object.keys(Object.values(mf.value)[0]?.profile?.stokMap || {});
+    console.log('mf_firmalar:', Object.keys(mf.value).length, names, 'stokKeys:', stok);
   } else console.log('mf_firmalar cikarilamadi');
 
   copyIfExists(path.join(APPDATA, 'musavirim/hizli-xml/kullanicilar.json'), 'hizli_kullanicilar.json');
   copyIfExists(path.join(APPDATA, 'musavirim/hizli-xml/config.json'), 'hizli_config.json');
+  copyIfExists(path.join(APPDATA, 'hizli-xml-indirici/data/kullanicilar.json'), 'hizli_kullanicilar_legacy.json');
   copyIfExists(path.join(APPDATA, 'musavirim/stok-kontrol/settings.json'), 'stok_settings.json');
   copyIfExists(path.join(APPDATA, 'musavirim/tahakkuk/mukellefler.json'), 'tahakkuk_mukellefler.json');
   copyIfExists(path.join(APPDATA, 'musavirim/tahakkuk/son-cekim.json'), 'tahakkuk_son_cekim.json');
@@ -135,6 +84,25 @@ function readJson(name) {
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 
+function summarize(arac, ayar) {
+  if (arac === 'hizli_xml') {
+    const u = ayar?.kullanicilar?.kullanicilar || [];
+    return `users=${u.length}`;
+  }
+  if (arac === 'hks') return `accounts=${ayar?.accounts?.length ?? 0}`;
+  if (arac === 'muhasebe_fisi') {
+    const f = ayar?.firmalar || {};
+    const n = typeof f === 'object' && !Array.isArray(f) ? Object.keys(f).length : 0;
+    return `firmalar=${n}`;
+  }
+  if (arac === 'tahakkuk') {
+    const m = ayar?.mukellefler?.mukellefler || ayar?.mukellefler || [];
+    return `mukellef=${Array.isArray(m) ? m.length : '?'}`;
+  }
+  if (arac === 'stok_kontrol') return `settings=${ayar?.settings ? 'ok' : 'yok'}`;
+  return '';
+}
+
 async function uploadToSupabase() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -144,7 +112,6 @@ async function uploadToSupabase() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Admin user id from profiles
   const { data: profiles, error: pErr } = await supabase
     .from('profiles')
     .select('id, role')
@@ -152,15 +119,18 @@ async function uploadToSupabase() {
     .limit(1);
   if (pErr) throw pErr;
   const userId = profiles?.[0]?.id;
-  if (!userId) throw new Error('Admin profil bulunamadi — once profiles insert yap');
+  if (!userId) throw new Error('Admin profil bulunamadi');
+
+  const hizliUsers = readJson('hizli_kullanicilar.json') || readJson('hizli_kullanicilar_legacy.json');
+  const mf = readJson('mf_firmalar.json');
 
   const bundle = {
     hizli_xml: {
-      kullanicilar: readJson('hizli_kullanicilar.json'),
+      kullanicilar: hizliUsers,
       config: readJson('hizli_config.json'),
     },
     hks: { accounts: readJson('hksAccounts.json') },
-    muhasebe_fisi: { firmalar: readJson('mf_firmalar.json') },
+    muhasebe_fisi: { firmalar: mf },
     stok_kontrol: { settings: readJson('stok_settings.json') },
     tahakkuk: {
       mukellefler: readJson('tahakkuk_mukellefler.json'),
@@ -168,7 +138,6 @@ async function uploadToSupabase() {
     },
   };
 
-  // Upsert each tool into arac_ayarlari
   for (const [arac, ayar] of Object.entries(bundle)) {
     const { error } = await supabase.from('arac_ayarlari').upsert(
       {
@@ -180,10 +149,9 @@ async function uploadToSupabase() {
       { onConflict: 'user_id,arac' },
     );
     if (error) throw error;
-    console.log('supabase arac_ayarlari:', arac);
+    console.log('supabase arac_ayarlari:', arac, summarize(arac, ayar));
   }
 
-  // Also populate firmalar from hizli profiles + tahakkuk mukellefler
   const firmalar = [];
   const hizli = bundle.hizli_xml?.kullanicilar?.kullanicilar || [];
   for (const u of hizli) {
@@ -198,7 +166,13 @@ async function uploadToSupabase() {
     const vkn = String(m.vkn || '').replace(/\D/g, '');
     if (ad) firmalar.push({ ad, vkn: vkn || null });
   }
-  // dedupe by vkn or ad
+  if (mf && typeof mf === 'object') {
+    for (const f of Object.values(mf)) {
+      const ad = String(f?.name || '').trim();
+      if (ad) firmalar.push({ ad, vkn: null });
+    }
+  }
+
   const seen = new Set();
   const unique = [];
   for (const f of firmalar) {
@@ -208,8 +182,10 @@ async function uploadToSupabase() {
     unique.push(f);
   }
 
-  // clear+insert firmalar for clean import (admin only project)
-  const { error: delErr } = await supabase.from('firmalar').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error: delErr } = await supabase
+    .from('firmalar')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000');
   if (delErr) console.warn('firmalar silme:', delErr.message);
   if (unique.length) {
     const { error: insErr } = await supabase.from('firmalar').insert(unique);
@@ -221,6 +197,4 @@ async function uploadToSupabase() {
 
 const mode = process.argv[2] || 'all';
 if (mode === 'dump' || mode === 'all') dumpLocal();
-if (mode === 'upload' || mode === 'all') {
-  await uploadToSupabase();
-}
+if (mode === 'upload' || mode === 'all') await uploadToSupabase();

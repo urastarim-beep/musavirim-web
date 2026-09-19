@@ -1,27 +1,62 @@
 /**
  * Bulut köprüsü — Electron IPC yerine tarayıcıda çalışır.
- * Parent (React) window.__MUSAVIRIM_CLOUD__ set eder.
+ * Parent ToolEmbed iframe'e musavirim-cloud-data gönderir.
  */
 (function () {
+  function applyCloud(payload) {
+    window.__MUSAVIRIM_CLOUD__ = payload && typeof payload === 'object' ? payload : {};
+    try {
+      sessionStorage.setItem('__MUSAVIRIM_CLOUD__', JSON.stringify(window.__MUSAVIRIM_CLOUD__));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  try {
+    applyCloud(JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'));
+  } catch {
+    applyCloud({});
+  }
+
+  let cloudReadyResolve;
+  const cloudReady = new Promise((resolve) => {
+    cloudReadyResolve = resolve;
+  });
+  setTimeout(() => cloudReadyResolve(window.__MUSAVIRIM_CLOUD__ || {}), 2500);
+
+  window.addEventListener('message', (ev) => {
+    if (!ev.data) return;
+    if (ev.data.type === 'musavirim-cloud-data') {
+      applyCloud(ev.data.payload);
+      cloudReadyResolve(window.__MUSAVIRIM_CLOUD__);
+      window.dispatchEvent(new Event('musavirim-cloud-ready'));
+    }
+  });
+
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'musavirim-cloud-request' }, '*');
+  }
+
   const cloud = () => window.__MUSAVIRIM_CLOUD__ || {};
+  const waitCloud = () => cloudReady;
   const notify = (msg) => {
     console.warn('[musavirim-cloud]', msg);
     return { ok: false, msg: String(msg) };
   };
 
-  // Electron require stub (HKS)
   if (typeof window.require !== 'function') {
     window.require = function (name) {
       if (name === 'electron') {
         return {
           ipcRenderer: {
-            invoke: async (channel, payload) => {
+            invoke: async (channel) => {
               if (channel === 'select-folder' || channel === 'select-hks-file' || channel === 'select-save') {
                 return { canceled: true, msg: 'Bulutta klasör seçimi yakında (dosya yükleme).' };
               }
               return notify('Bu işlem bulut worker ile çalışacak: ' + channel);
             },
             on: () => {},
+            send: () => {},
           },
         };
       }
@@ -29,12 +64,10 @@
     };
   }
 
-  // Hızlı XML
   window.hizliApp = {
     async loadConfig() {
+      await waitCloud();
       const raw = cloud();
-      // imported shape: { kullanicilar: { kullanicilar, aktifKullaniciId }, config }
-      // or flat kullanicilar store
       const store = raw.kullanicilar || raw;
       const users = Array.isArray(store.kullanicilar)
         ? store.kullanicilar
@@ -48,7 +81,6 @@
         users,
         activeUserId,
         config,
-        // Tarayıcıda klasör seçimi yok; ZIP otomatik İndirilenler'e iner
         ortakIndirmeKlasoru:
           store.ortakIndirmeKlasoru || config.indirmeKlasoru || 'Indirilenler (otomatik)',
       };
@@ -79,7 +111,6 @@
     },
     async downloadXml(form) {
       try {
-        // Parent (React) üzerinden indir — İndirilenler klasörüne düşer
         if (window.parent && window.parent !== window) {
           return await new Promise((resolve) => {
             const reqId = 'xml-' + Date.now() + '-' + Math.random().toString(36).slice(2);
@@ -146,9 +177,9 @@
     onDownloadLog() {},
   };
 
-  // Stok
   window.stokApp = {
     async loadSettings() {
+      await waitCloud();
       return { ok: true, settings: (cloud().stok_kontrol || cloud()).settings || cloud().settings || {} };
     },
     async saveSettings(s) {
@@ -175,10 +206,8 @@
     },
   };
 
-  // Tahakkuk
   const tahakkukData = () => {
     const raw = cloud();
-    // imported: { mukellefler: { ofis, mukellefler, aktifId }, son_cekim }
     if (raw.mukellefler && (raw.mukellefler.mukellefler || raw.mukellefler.ofis)) {
       return raw.mukellefler;
     }
@@ -187,6 +216,7 @@
 
   const tahakkukApi = {
     async load() {
+      await waitCloud();
       const d = tahakkukData();
       return {
         ok: true,
@@ -214,7 +244,7 @@
       );
       return { ok: true };
     },
-    async bellekKaydet(bellek) {
+    async bellekKaydet() {
       return { ok: true };
     },
     onWaState() {},

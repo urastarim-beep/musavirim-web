@@ -261,7 +261,15 @@ const DEFAULT_CARI = {
 function getFirmalar() {
   try { return JSON.parse(localStorage.getItem("mf_firmalar") || "{}"); } catch { return {}; }
 }
-function saveFirmalar(data) { localStorage.setItem("mf_firmalar", JSON.stringify(data)); }
+function saveFirmalar(data) {
+  localStorage.setItem("mf_firmalar", JSON.stringify(data));
+  try {
+    window.parent.postMessage(
+      { type: "musavirim-save", arac: "muhasebe_fisi", payload: { firmalar: data } },
+      "*"
+    );
+  } catch (e) { /* ignore */ }
+}
 
 function getFirmaProfile(id) {
   const firmalar = getFirmalar();
