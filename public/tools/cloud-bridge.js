@@ -48,7 +48,9 @@
         users,
         activeUserId,
         config,
-        ortakIndirmeKlasoru: store.ortakIndirmeKlasoru || config.indirmeKlasoru || '',
+        // Tarayıcıda klasör seçimi yok; ZIP otomatik İndirilenler'e iner
+        ortakIndirmeKlasoru:
+          store.ortakIndirmeKlasoru || config.indirmeKlasoru || 'Indirilenler (otomatik)',
       };
     },
     async saveConfig(payload) {
@@ -75,8 +77,71 @@
     async testConnection() {
       return notify('Bağlantı testi worker ile eklenecek.');
     },
-    async downloadXml() {
-      return notify('XML indirme worker kuyruğuna alınacak (sonraki adım).');
+    async downloadXml(form) {
+      try {
+        // Parent (React) üzerinden indir — İndirilenler klasörüne düşer
+        if (window.parent && window.parent !== window) {
+          return await new Promise((resolve) => {
+            const reqId = 'xml-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+            function onMsg(ev) {
+              if (!ev.data || ev.data.type !== 'musavirim-download-result') return;
+              if (ev.data.reqId !== reqId) return;
+              window.removeEventListener('message', onMsg);
+              resolve(ev.data.result || { ok: false, message: 'Indirme hatasi.' });
+            }
+            window.addEventListener('message', onMsg);
+            window.parent.postMessage(
+              { type: 'musavirim-download-xml', reqId, form: form || {} },
+              '*',
+            );
+            setTimeout(() => {
+              window.removeEventListener('message', onMsg);
+              resolve({ ok: false, message: 'Indirme zaman asimina ugradi (60 sn).' });
+            }, 60_000);
+          });
+        }
+
+        const res = await fetch('/api/hizli-xml-indir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form || {}),
+        });
+        const ctype = res.headers.get('content-type') || '';
+        if (!res.ok) {
+          let message = 'Indirme hatasi.';
+          if (ctype.includes('application/json')) {
+            const j = await res.json();
+            message = j.message || message;
+          } else {
+            message = (await res.text()) || message;
+          }
+          return { ok: false, message };
+        }
+        if (!ctype.includes('zip') && !ctype.includes('octet-stream')) {
+          const j = await res.json().catch(() => null);
+          return { ok: false, message: (j && j.message) || 'Beklenmeyen yanit' };
+        }
+        const blob = await res.blob();
+        const disp = res.headers.get('Content-Disposition') || '';
+        const m = disp.match(/filename=\"?([^\";]+)\"?/i);
+        const filename = (m && m[1]) || 'xml-indir.zip';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return {
+          ok: true,
+          xmlSayisi: Number(res.headers.get('X-Xml-Count') || 0),
+          yeni: Number(res.headers.get('X-Xml-Yeni') || 0),
+          message: 'ZIP Indirilenler klasorune kaydedildi.',
+        };
+      } catch (err) {
+        return { ok: false, message: err.message || String(err) };
+      }
     },
     onDownloadLog() {},
   };

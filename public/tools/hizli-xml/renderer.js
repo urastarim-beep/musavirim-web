@@ -440,9 +440,13 @@ indirBtn.addEventListener('click', async () => {
       return;
     }
     if (!form.indirmeKlasoru) {
-      appendLog('Ortak indirme klasoru secmelisiniz (Ayarlar).', 'hata');
-      setStatus('Eksik bilgi');
-      return;
+      if (location.protocol.startsWith('http')) {
+        form.indirmeKlasoru = 'Indirilenler';
+      } else {
+        appendLog('Ortak indirme klasoru secmelisiniz (Ayarlar).', 'hata');
+        setStatus('Eksik bilgi');
+        return;
+      }
     }
     if (activePortalId() === 'hizli' && (hasUnicodeInput(form.kullaniciAdi) || hasUnicodeInput(form.sifre))) {
       appendLog('UYARI: Kullanici adi/sifre alaninda Turkce karakter varsa API reddedebilir.', 'uyari');
@@ -471,12 +475,17 @@ topluIndirBtn.addEventListener('click', async () => {
 
   try {
     persistActiveFormToState();
-    const ortak = state.ortakIndirmeKlasoru || fields.indirmeKlasoru.value.trim();
+    const ortak =
+      state.ortakIndirmeKlasoru ||
+      fields.indirmeKlasoru.value.trim() ||
+      (location.protocol.startsWith('http') ? 'Indirilenler' : '');
     if (!ortak) {
       appendLog('Ortak indirme klasoru secmelisiniz (Ayarlar).', 'hata');
       setStatus('Eksik bilgi');
       return;
     }
+    state.ortakIndirmeKlasoru = ortak;
+    fields.indirmeKlasoru.value = ortak;
     const kayitOk = await saveCurrentConfig(false);
     if (!kayitOk) {
       setStatus('Kaydetme hatasi');

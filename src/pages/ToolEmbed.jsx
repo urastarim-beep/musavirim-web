@@ -37,6 +37,7 @@ export default function ToolEmbed({ toolId }) {
           localStorage.setItem('mf_firmalar', JSON.stringify(a.firmalar));
         }
         if (meta.arac === 'hks' && a.accounts) {
+          // Eski bozuk encoding kalıntısını temizle, buluttaki düzgün adları yaz
           localStorage.setItem('hksAccounts', JSON.stringify(a.accounts));
         }
 
@@ -60,7 +61,61 @@ export default function ToolEmbed({ toolId }) {
 
   useEffect(() => {
     async function onMsg(ev) {
-      if (!ev.data || ev.data.type !== 'musavirim-save') return;
+      if (!ev.data) return;
+
+      if (ev.data.type === 'musavirim-download-xml') {
+        const { reqId, form } = ev.data;
+        const reply = (result) => {
+          if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(
+              { type: 'musavirim-download-result', reqId, result },
+              '*',
+            );
+          }
+        };
+        try {
+          const res = await fetch('/api/hizli-xml-indir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(form || {}),
+          });
+          const ctype = res.headers.get('content-type') || '';
+          if (!res.ok) {
+            let message = 'Indirme hatasi.';
+            if (ctype.includes('application/json')) {
+              const j = await res.json();
+              message = j.message || message;
+            } else {
+              message = (await res.text()) || message;
+            }
+            reply({ ok: false, message });
+            return;
+          }
+          const blob = await res.blob();
+          const disp = res.headers.get('Content-Disposition') || '';
+          const m = disp.match(/filename="?([^";]+)"?/i);
+          const filename = (m && m[1]) || 'xml-indir.zip';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+          reply({
+            ok: true,
+            xmlSayisi: Number(res.headers.get('X-Xml-Count') || 0),
+            yeni: Number(res.headers.get('X-Xml-Yeni') || 0),
+            message: 'ZIP Indirilenler klasorune kaydedildi.',
+          });
+        } catch (e) {
+          reply({ ok: false, message: e.message || String(e) });
+        }
+        return;
+      }
+
+      if (ev.data.type !== 'musavirim-save') return;
       const { arac, payload } = ev.data;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
