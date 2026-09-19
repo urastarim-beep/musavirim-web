@@ -326,6 +326,8 @@
     return raw;
   };
 
+  const M = () => window.TahakkukMetin || {};
+
   const tahakkukApi = {
     async load() {
       await waitCloud();
@@ -336,36 +338,180 @@
         mukellefler: d.mukellefler || [],
         aktifId: d.aktifId || null,
         fisKlasor: d.ofis?.fisKlasor || '',
-        bellek: d.bellek || null,
+        bellek: d.bellek || cloud().son_cekim || { donem: null, zaman: null, sonuclar: {} },
         sgkUrl: d.sgkUrl || {},
         ivdUrl: d.ivdUrl || 'https://ivd.gib.gov.tr',
         ebynUrl: d.ebynUrl || 'https://ebeyanname.gib.gov.tr',
       };
     },
     async save(payload) {
-      window.parent.postMessage(
-        {
-          type: 'musavirim-save',
-          arac: 'tahakkuk',
-          payload: {
-            mukellefler: payload,
-            son_cekim: cloud().son_cekim || null,
-          },
-        },
-        '*',
-      );
+      const next = {
+        mukellefler: payload,
+        son_cekim: cloud().son_cekim || null,
+      };
+      window.__MUSAVIRIM_CLOUD__ = { ...cloud(), ...next };
+      window.parent.postMessage({ type: 'musavirim-save', arac: 'tahakkuk', payload: next }, '*');
       return { ok: true };
     },
-    async bellekKaydet() {
+    async bellekKaydet(bellek) {
+      const d = tahakkukData();
+      const next = {
+        mukellefler: { ...d, bellek: bellek || d.bellek },
+        son_cekim: bellek || cloud().son_cekim || null,
+      };
+      window.__MUSAVIRIM_CLOUD__ = { ...cloud(), ...next };
+      window.parent.postMessage({ type: 'musavirim-save', arac: 'tahakkuk', payload: next }, '*');
       return { ok: true };
     },
-    onWaState() {},
+    onWaState() {
+      return () => {};
+    },
+    onCekIlerleme() {
+      return () => {};
+    },
+    onSgkStatus() {
+      return () => {};
+    },
+    onSgkCaptcha() {
+      return () => {};
+    },
+    async waStatus() {
+      return { ok: true, status: 'bulut-kapali', msg: 'WhatsApp bulutta kapali' };
+    },
+    async waStart() {
+      return {
+        ok: true,
+        status: 'bulut-kapali',
+        msg: 'WhatsApp bulutta su an kapali (ayri worker gerekir). Makbuz onizleme calisir.',
+      };
+    },
+    async waLogout() {
+      return { ok: true, status: 'bulut-kapali' };
+    },
+    async metin(opts) {
+      try {
+        const tip = opts?.tip || 'makbuz';
+        const metin =
+          tip === 'makbuz'
+            ? ''
+            : M().olusturMetin({
+                tip,
+                firmaAdi: opts?.firmaAdi,
+                vkn: opts?.vkn,
+                donemEtiket: opts?.donemEtiket,
+                kalemler: opts?.kalemler || [],
+                tarih: opts?.tarih,
+              });
+        const makbuz =
+          tip === 'tahakkuk'
+            ? null
+            : M().makbuzVeri({
+                firmaAdi: opts?.firmaAdi,
+                kalemler: opts?.kalemler || [],
+                tarih: opts?.tarih,
+              });
+        return { ok: true, metin, tip, makbuz };
+      } catch (err) {
+        return { ok: false, msg: err.message };
+      }
+    },
+    async makbuzHesapla(opts) {
+      try {
+        const satirlar = (opts?.satirlar || [])
+          .map((k) => ({
+            donem: String(k.donem || '').trim(),
+            aciklama: String(k.aciklama || k.ad || '').trim() || 'Kalem',
+            ad: String(k.aciklama || k.ad || '').trim() || 'Kalem',
+            tutar: Number(String(k.tutar ?? '').replace(/\./g, '').replace(',', '.')) || 0,
+          }))
+          .filter((k) => k.tutar > 0);
+        const toplam = (M().toplamKalem || ((l) => l.reduce((s, x) => s + (Number(x.tutar) || 0), 0)))(satirlar);
+        const makbuz = {
+          baslik: 'MUHASEBE ÖDEME BİLDİRİM MAKBUZU',
+          tarih: String(opts?.tarih || '').trim() || undefined,
+          musteri: String(opts?.musteri || opts?.firmaAdi || 'Müşteri').trim().toLocaleUpperCase('tr-TR'),
+          satirlar,
+          toplam,
+          toplamYazi: M().sayiyiYaziya ? M().sayiyiYaziya(toplam) : String(toplam),
+          toplamFormat: M().formatTlSembol ? M().formatTlSembol(toplam) : String(toplam),
+        };
+        if (!makbuz.tarih) {
+          const d = new Date();
+          makbuz.tarih = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+        }
+        return { ok: true, makbuz };
+      } catch (err) {
+        return { ok: false, msg: err.message || String(err) };
+      }
+    },
+    async makbuzGonder(opts) {
+      const tel = String(opts?.telefon || '').trim();
+      if (!tel) return { ok: false, msg: 'Telefon yok.' };
+      const url = M().whatsappUrl
+        ? M().whatsappUrl(tel, '')
+        : `https://wa.me/${tel.replace(/\D/g, '')}`;
+      window.open(url, '_blank', 'noopener');
+      return {
+        ok: true,
+        msg: 'WhatsApp Web acildi. Makbuz gorselini ekrandan kaydedip yapistirabilirsiniz. Otomatik gonderim icin worker gerekir.',
+      };
+    },
+    async cek() {
+      return {
+        ok: false,
+        msg: 'IVD/EBYN sorgusu bulutta henuz yok (Playwright worker gerekir). Masaustu Tahakkuk ile cekebilirsiniz.',
+      };
+    },
+    async cekHepsi() {
+      return {
+        ok: false,
+        msg: 'Toplu sorgu bulutta henuz yok. Worker eklenecek.',
+      };
+    },
+    async sgkCek() {
+      return { ok: false, msg: 'SGK cekim bulutta henuz yok (worker gerekir).' };
+    },
+    async sgkCaptchaSubmit() {
+      return { ok: false, msg: 'SGK captcha bulutta yok.' };
+    },
+    async sgkCaptchaCancel() {
+      return { ok: true };
+    },
+    async sgkCaptchaRefresh() {
+      return { ok: false, msg: 'SGK captcha bulutta yok.' };
+    },
+    async excelSablon() {
+      return { ok: false, msg: 'Excel sablon bulutta yakinda.' };
+    },
+    async excelDisari() {
+      return { ok: false, msg: 'Excel disa aktarma bulutta yakinda.' };
+    },
+    async excelAktar() {
+      return { ok: false, canceled: true, msg: 'Excel aktarimi bulutta yakinda.' };
+    },
+    async openUrl(url) {
+      if (url) window.open(url, '_blank', 'noopener');
+      return { ok: true };
+    },
+    async openFisFolder() {
+      return { ok: false, msg: 'Bulutta klasor yok.' };
+    },
+    async selectFisFolder() {
+      return { canceled: true };
+    },
+    async testIvd() {
+      return { ok: false, msg: 'IVD testi worker ile eklenecek.' };
+    },
+    async testEbyn() {
+      return { ok: false, msg: 'EBYN testi worker ile eklenecek.' };
+    },
+    async waMetinGonder() {
+      return { ok: false, msg: 'WhatsApp metin gonderimi worker ister.' };
+    },
+    async waPdfGonder() {
+      return { ok: false, msg: 'WhatsApp PDF gonderimi worker ister.' };
+    },
   };
 
-  window.tahakkukApp = new Proxy(tahakkukApi, {
-    get(target, prop) {
-      if (prop in target) return target[prop];
-      return async () => notify('Tahakkuk işlemi worker ile eklenecek: ' + String(prop));
-    },
-  });
+  window.tahakkukApp = tahakkukApi;
 })();

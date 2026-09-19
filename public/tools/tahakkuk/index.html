@@ -131,6 +131,7 @@ details.adv summary{cursor:pointer;color:var(--txD);font-size:12.5px;font-weight
 <script>
 try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'); } catch (e) { window.__MUSAVIRIM_CLOUD__ = {}; }
 </script>
+<script src="/tools/tahakkuk/metin.js"></script>
 <script src="/tools/cloud-bridge.js"></script>
   <div class="header">
     <div class="logo">TM</div>
@@ -1306,7 +1307,7 @@ async function init() {
   if (waMesaj && (waMesaj.tip === 'hata' || waMesaj.tip === 'info')) {
     showMsg(waMesaj.t, waMesaj.tip);
   } else if (bellekN) {
-    showMsg(`WhatsApp hazir. Bellekte ${bellekN} mukellef sonucu var.`, 'ok');
+    showMsg(`Bellekte ${bellekN} mukellef sonucu var.`, 'ok');
   } else if (waMesaj) {
     showMsg(waMesaj.t, waMesaj.tip);
   }
