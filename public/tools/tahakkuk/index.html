@@ -2341,12 +2341,19 @@ $('waBaglanBtn').addEventListener('click', async () => {
     const r = await api().waStart();
     renderWaState(r);
     if (r.ok && r.status === 'hazir') showMsg('WhatsApp hazir (zaten bagli).', 'ok');
-    else if (r.ok && r.qrDataUrl) showMsg('Karekod geldi — telefonda okut.', 'ok');
-    else if (r.ok && (r.status === 'qr' || r.status === 'baglaniyor')) {
-      showMsg('Karekod bekleniyor. Sag tarafta cikmazsa 10 sn sonra tekrar bas.', 'info');
-    } else if (!r.ok) showMsg(r.msg || r.hata || 'WhatsApp baslatilamadi', 'hata');
+    else if (r.ok && (r.qrDataUrl || r.status === 'qr')) showMsg('Karekod geldi — telefonda okut.', 'ok');
+    else if (r.ok && r.status === 'baglaniyor') {
+      showMsg(r.msg || 'Karekod bekleniyor. Sag tarafta cikmazsa tekrar Baglan.', 'info');
+    } else {
+      const msg = r.msg || r.hata || 'WhatsApp baslatilamadi';
+      $('waQrYok').textContent = msg;
+      showMsg(msg, 'hata');
+      renderWaState({ status: 'hata', hata: msg, qrDataUrl: null });
+    }
   } catch (e) {
-    showMsg(e.message || String(e), 'hata');
+    const msg = e.message || String(e);
+    $('waQrYok').textContent = msg;
+    showMsg(msg, 'hata');
   } finally {
     $('waBaglanBtn').disabled = false;
   }

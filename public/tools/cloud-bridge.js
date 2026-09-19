@@ -447,9 +447,14 @@
     async waStart() {
       const created = await createJob('wa_start', {});
       if (!created.ok) {
-        return { ok: false, status: 'hata', msg: created.msg || 'Worker job olusturulamadi. Worker calisiyor mu?' };
+        return {
+          ok: false,
+          status: 'hata',
+          msg: created.msg || 'Job olusturulamadi. Giris/oturum veya Supabase jobs tablosunu kontrol et.',
+        };
       }
       const start = Date.now();
+      let sawCalisiyor = false;
       while (Date.now() - start < 90000) {
         await new Promise((r) => setTimeout(r, 2000));
         const st = await parentRpc('musavirim-wa-status', {}, 10000);
@@ -457,17 +462,34 @@
           return { ok: true, status: 'hazir', hazir: true, qrDataUrl: null };
         }
         if (st.qrDataUrl || st.status === 'qr') {
-          return { ok: true, status: 'qr', qrDataUrl: st.qrDataUrl, hazir: false };
+          return { ok: true, status: 'qr', qrDataUrl: st.qrDataUrl, hazir: false, msg: st.msg };
         }
         const job = await parentRpc('musavirim-get-job', { jobId: created.job.id }, 10000);
-        if (job.job?.durum === 'hata') {
+        const durum = job.job?.durum;
+        if (durum === 'calisiyor') sawCalisiyor = true;
+        if (durum === 'hata') {
           return { ok: false, status: 'hata', msg: job.job.hata_mesaji || 'wa_start hatasi' };
         }
-        if (job.job?.durum === 'tamam' && job.job.sonuc) {
+        if (durum === 'tamam' && job.job.sonuc) {
           return { ok: true, ...job.job.sonuc };
         }
+        // 20 sn boyunca job hâlâ bekliyor = worker ayakta değil
+        if (!sawCalisiyor && Date.now() - start > 20000 && durum === 'bekliyor') {
+          return {
+            ok: false,
+            status: 'hata',
+            msg:
+              'Worker calismiyor — karekod uretilemez. Bilgisayarda musavirim-web/worker icinde npm start yap veya Railway worker deploy et.',
+          };
+        }
       }
-      return { ok: true, status: 'baglaniyor', msg: 'Worker QR bekleniyor — Ayarlar sekmesini acik tutun.' };
+      return {
+        ok: false,
+        status: 'hata',
+        msg: sawCalisiyor
+          ? 'Karekod zaman asimina ugradi. Worker loglarina bak, tekrar Baglan.'
+          : 'Worker job almadi. Worker (Railway veya yerel npm start) calisiyor mu?',
+      };
     },
     async waLogout() {
       const created = await createJob('wa_logout', {});
