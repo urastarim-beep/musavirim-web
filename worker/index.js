@@ -429,6 +429,9 @@ function startHealthServer() {
       }),
     );
   });
+  server.on('error', (err) => {
+    console.warn('health server:', err.message);
+  });
   server.listen(PORT, () => console.log('health :' + PORT));
 }
 
