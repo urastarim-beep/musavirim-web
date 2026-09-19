@@ -139,6 +139,9 @@
               if (channel === 'do-login') {
                 return hksLogin(payload || {});
               }
+              if (channel === 'close-popup') {
+                return { success: true };
+              }
               if (channel === 'select-folder' || channel === 'select-hks-file' || channel === 'select-save') {
                 return { canceled: true, msg: 'Bulutta klasör seçimi yakında (dosya yükleme).' };
               }
