@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "@whiskeysockets/baileys": "6.7.9",
+    "@whiskeysockets/baileys": "^6.7.24",
     "adm-zip": "^0.5.16",
     "playwright": "^1.49.0",
     "qrcode": "^1.5.4"

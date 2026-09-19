@@ -87,6 +87,15 @@ async function finishJob(id, ok, sonuc, hata) {
 
 async function handleWaStart() {
   const client = getWa();
+  // Telefon "cihaz baglanamadi" → yarim oturum + eski QR; her Baglan'da temiz pairing
+  if (client.status !== 'hazir') {
+    try {
+      if (typeof client.stop === 'function') client.stop();
+    } catch (_) { /* ignore */ }
+    const state = await client.start({ fresh: true });
+    await syncWaState(state);
+    return { ok: true, ...state };
+  }
   const state = await client.start();
   await syncWaState(state);
   return { ok: true, ...state };
