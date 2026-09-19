@@ -22,7 +22,7 @@ export default function Login() {
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (err) {
-      setError('Giriş başarısız: e-posta veya şifre hatalı.');
+      setError(err.message || 'Giriş başarısız: e-posta veya şifre hatalı.');
       return;
     }
     if (beniHatirla) localStorage.setItem(HATIRLA_KEY, email);
