@@ -1,0 +1,180 @@
+﻿<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hizli XML Indirici</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+<script>
+try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'); } catch (e) { window.__MUSAVIRIM_CLOUD__ = {}; }
+</script>
+<script src="/tools/cloud-bridge.js"></script>
+    <main class="container">
+      <section class="hero">
+        <div>
+          <h1>Hizli XML Indirici</h1>
+          <p class="subtitle">Sade indirme ekrani + ayri ayarlar sekmesi</p>
+        </div>
+        <div class="badge">v3 arayuz</div>
+      </section>
+
+      <section class="tabs">
+        <button id="tabIndirBtn" type="button" class="tab-btn active">Indirme</button>
+        <button id="tabAyarBtn" type="button" class="tab-btn">Ayarlar</button>
+      </section>
+
+      <section id="tabIndir" class="card tab-content active">
+        <div class="grid">
+          <label class="folder-row">
+            Firma / Profil
+            <select id="profilSecIndir"></select>
+          </label>
+          <label>
+            Yil
+            <input id="yil" type="number" min="2000" max="2100" />
+          </label>
+          <label>
+            Ay
+            <select id="ay">
+              <option value="1">Ocak</option>
+              <option value="2">Subat</option>
+              <option value="3">Mart</option>
+              <option value="4">Nisan</option>
+              <option value="5">Mayis</option>
+              <option value="6">Haziran</option>
+              <option value="7">Temmuz</option>
+              <option value="8">Agustos</option>
+              <option value="9">Eylul</option>
+              <option value="10">Ekim</option>
+              <option value="11">Kasim</option>
+              <option value="12">Aralik</option>
+            </select>
+          </label>
+          <label>
+            Fatura Turu
+            <select id="faturaKodu">
+              <option value="gelen">Gelen e-Fatura</option>
+              <option value="giden">Giden e-Fatura</option>
+              <option value="arsiv">Giden e-Arsiv</option>
+              <option value="gelen_arsiv">Gelen e-Arsiv</option>
+              <option value="mustahsil">e-Mustahsil</option>
+              <option value="tumu">Tumu (gelen/giden + e-Arsiv)</option>
+            </select>
+          </label>
+          <div class="toggle-row">
+            <span>Durum Filtresi</span>
+            <label class="toggle-inline">
+              <input id="iptalRedDahil" type="checkbox" />
+              <span>Iptal/Red belgeleri de indir</span>
+            </label>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="indirBtn" type="button" class="primary">XML Indir</button>
+          <button id="topluIndirBtn" type="button">Tum Profilleri Indir</button>
+        </div>
+      </section>
+
+      <section id="tabAyar" class="card tab-content">
+        <div class="profile-row">
+          <label>
+            Kullanici Profili
+            <select id="profilSec"></select>
+          </label>
+          <label>
+            Portal
+            <select id="portal"></select>
+          </label>
+          <label>
+            Profil Adi
+            <input id="profilAdi" type="text" placeholder="ornek: Muhasebe 1" />
+          </label>
+          <div class="profile-actions">
+            <button id="profilEkleBtn" type="button">Yeni Profil</button>
+            <button id="profilSilBtn" type="button" class="danger">Profili Sil</button>
+          </div>
+        </div>
+        <div class="grid">
+          <label>
+            WS Kullanici Adi
+            <input id="kullaniciAdi" type="text" placeholder="portal / web servis kullanici" />
+          </label>
+          <label>
+            Sifre
+            <input id="sifre" type="password" placeholder="portal sifresi" />
+          </label>
+          <label>
+            VKN/TCKN
+            <input id="vkn" type="text" placeholder="firma vergi no / tc" />
+          </label>
+          <label>
+            Firma Adi
+            <input id="firmaAdi" type="text" placeholder="firma unvani" />
+          </label>
+          <label class="folder-row">
+            Ortak Indirme Klasoru (tum firmalar)
+            <div class="folder-select">
+              <input id="indirmeKlasoru" type="text" placeholder="Bir kez sec — tum firmalar ayni klasore iner" readonly />
+              <button id="klasorSec" type="button">Sec</button>
+            </div>
+          </label>
+        </div>
+
+        <div class="gib-box">
+          <div class="gib-box-title">GIB e-Arsiv Portal (Adima Duzenlenen)</div>
+          <p class="gib-box-hint">
+            Gelen e-Arsiv icin Interaktif Vergi Dairesi / e-Arsiv kullanici kodu ve sifresi.
+            Hizli/EDM sifresinden farklidir.
+          </p>
+          <div class="grid">
+            <label>
+              GIB Kullanici Kodu
+              <input id="gibKullaniciAdi" type="text" placeholder="IVD / e-Arsiv kullanici kodu" autocomplete="off" />
+            </label>
+            <label>
+              GIB Sifre
+              <input id="gibSifre" type="password" placeholder="IVD / e-Arsiv sifresi" autocomplete="new-password" />
+            </label>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>Gelismis Ayarlar</summary>
+          <div class="grid advanced-grid">
+            <label>
+              API Key
+              <input id="apiKey" type="text" placeholder="canli/test api key" />
+            </label>
+            <label>
+              Secret Key
+              <input id="secretKey" type="password" placeholder="UtilEncrypt secret key" />
+            </label>
+            <label>
+              API Endpoint (opsiyonel)
+              <input id="apiUrl" type="text" placeholder="ornek: https://integration.iceteknoloji.com.tr/integration.asmx" />
+            </label>
+            <label>
+              Hedef VKN
+              <input id="hedefVkn" type="text" placeholder="farkli hedef firma varsa girin" />
+            </label>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button id="kaydetBtn" type="button">Ayarlari Kaydet</button>
+          <button id="testBtn" type="button">Baglanti Testi</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Durum</h2>
+        <div id="status" class="status">Hazir</div>
+        <pre id="log" class="log"></pre>
+      </section>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,1629 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKS Bildirim İndirici</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        .header h1 {
+            font-size: 38px;
+            color: #4ecdc4;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(78, 205, 196, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .card:hover::before {
+            left: 100%;
+        }
+
+        .card:hover {
+            border-color: rgba(78, 205, 196, 0.4);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 0 30px rgba(78, 205, 196, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 24px;
+            color: #4ecdc4;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .card h2 .step {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a49e 100%);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a49e 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 16px rgba(78, 205, 196, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.5;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .folder-select {
+            display: flex;
+            gap: 12px;
+        }
+
+        .folder-select input {
+            flex: 1;
+        }
+
+        .folder-select .btn {
+            white-space: nowrap;
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .status.info {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #4ecdc4;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .checkbox-item input:checked + label {
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            color: #fff;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4 0%, #44a49e 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .captcha-image {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: #fff;
+            min-width: 150px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .captcha-image img {
+            max-width: 200px;
+            border-radius: 6px;
+        }
+
+        .captcha-input {
+            flex: 1;
+            max-width: 150px;
+        }
+
+        .login-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .logged-in-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+        }
+
+        .logged-in-info .icon {
+            font-size: 24px;
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .account-list {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .account-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(78, 205, 196, 0.3);
+        }
+
+        .account-info {
+            flex: 1;
+        }
+
+        .account-name {
+            font-size: 14px;
+            color: #4ecdc4;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .account-username {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .btn-delete {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+            box-shadow: none;
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.6);
+        }
+
+        .btn-edit {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: rgba(78, 205, 196, 0.2);
+            border: 1px solid rgba(78, 205, 196, 0.4);
+            color: #4ecdc4;
+            box-shadow: none;
+            margin-right: 8px;
+        }
+
+        .btn-edit:hover {
+            background: rgba(78, 205, 196, 0.3);
+            border-color: rgba(78, 205, 196, 0.6);
+        }
+
+        .account-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h3 {
+            color: #4ecdc4;
+            margin-bottom: 24px;
+            font-size: 24px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .file-list h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(78, 205, 196, 0.3);
+        }
+
+        .file-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .file-path {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Courier New', monospace;
+        }
+
+        .file-count {
+            font-size: 12px;
+            color: #4ecdc4;
+            margin-top: 2px;
+        }
+
+        .btn-open-file {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: rgba(78, 205, 196, 0.2);
+            border: 1px solid rgba(78, 205, 196, 0.4);
+            color: #4ecdc4;
+            box-shadow: none;
+        }
+
+        .btn-open-file:hover {
+            background: rgba(78, 205, 196, 0.3);
+            border-color: rgba(78, 205, 196, 0.6);
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.2);
+        }
+    </style>
+</head>
+<body>
+<script>
+try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'); } catch (e) { window.__MUSAVIRIM_CLOUD__ = {}; }
+</script>
+<script src="/tools/cloud-bridge.js"></script>
+    <div class="container">
+        <div class="header">
+            <h1>HKS Bildirim İndirici</h1>
+            <p>Hal Kayıt Sistemi Bildirim Verisi Excel Dışa Aktarma Aracı</p>
+        </div>
+
+        <!-- Hesap Yönetimi -->
+        <div class="card">
+            <div class="account-header">
+                <h2 style="margin-bottom: 0;">Kayıtlı Hesaplar</h2>
+                <button class="btn btn-small" id="btnAddAccount">+ Yeni Hesap Ekle</button>
+            </div>
+
+            <div class="form-group">
+                <label>Hesap Seç</label>
+                <select id="selectAccount">
+                    <option value="">-- Manuel Giriş --</option>
+                </select>
+            </div>
+
+            <div id="accountList" class="account-list hidden"></div>
+        </div>
+
+        <!-- Adım 1: Giriş -->
+        <div class="card" id="step1">
+            <h2><span class="step">1</span> Sisteme Giriş</h2>
+
+            <!-- Giriş Formu -->
+            <div id="loginForm" class="login-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Kullanıcı Adı</label>
+                        <input type="text" id="txtUsername" placeholder="Kullanıcı adınız">
+                    </div>
+                    <div class="form-group">
+                        <label>Şifre</label>
+                        <input type="password" id="txtPassword" placeholder="Şifreniz">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Güvenlik Kodu</label>
+                    <div class="captcha-container">
+                        <div class="captcha-image" id="captchaContainer">
+                            <span style="color: #666; font-size: 12px;">Yükleniyor...</span>
+                        </div>
+                        <input type="text" id="txtCaptcha" class="captcha-input" placeholder="Kodu girin">
+                        <button class="btn btn-secondary btn-small" id="btnRefreshCaptcha" title="Yenile">Yenile</button>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" id="btnLogin">
+                        Giriş Yap
+                    </button>
+                </div>
+            </div>
+
+            <!-- Giriş Yapıldı Bilgisi -->
+            <div id="loggedInInfo" class="logged-in-info hidden">
+                <div>
+                    <strong>Giriş Başarılı!</strong>
+                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-top: 4px;">Sorgu ayarlarını yapabilirsiniz.</p>
+                </div>
+            </div>
+
+            <div id="status1" class="status hidden"></div>
+        </div>
+
+        <!-- Adım 2: Ayarlar -->
+        <div class="card" id="step2">
+            <h2><span class="step">2</span> Sorgu Ayarları</h2>
+
+            <div class="form-group">
+                <label>Künye Türü</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="chkReferans" value="Referans" checked>
+                        <label for="chkReferans">Referans</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="chkNihaiTuketim" value="Nihai Tüketim">
+                        <label for="chkNihaiTuketim">Nihai Tüketim</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="chkFire" value="Fire">
+                        <label for="chkFire">Fire</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Filtre (Malın Sahibi VE Bildirimci — hesap seçilince otomatik dolar)</label>
+                <input type="text" id="txtFilterName" placeholder="örn: AHMET YILMAZ" value="">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Başlangıç Tarihi</label>
+                    <input type="date" id="txtBaslangic">
+                </div>
+                <div class="form-group">
+                    <label>Bitiş Tarihi</label>
+                    <input type="date" id="txtBitis">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Kayıt Klasörü</label>
+                <div class="folder-select">
+                    <input type="text" id="txtFolder" placeholder="Klasör seçin..." readonly>
+                    <button class="btn btn-secondary" id="btnSelectFolder">Klasör Seç</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adım 3: İndir -->
+        <div class="card" id="step3">
+            <h2><span class="step">3</span> Verileri İndir</h2>
+            <div class="btn-group">
+                <button class="btn" id="btnExport" disabled>
+                    Excel'e Aktar
+                </button>
+                <button class="btn btn-secondary" id="btnCloseBrowser" disabled>
+                    Oturumu Kapat
+                </button>
+            </div>
+            <div class="progress-bar" id="progressBar">
+                <div class="fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div id="status3" class="status hidden"></div>
+
+            <!-- Kaydedilen Dosyalar -->
+            <div id="fileList" class="file-list hidden">
+                <h3>Kaydedilen Dosyalar</h3>
+                <div id="fileItems"></div>
+            </div>
+        </div>
+
+        <!-- Adım 4: Müstahsil Makbuzu Dönüştürme -->
+        <div class="card" id="step4">
+            <h2><span class="step">4</span> E-Müstahsil Makbuzu Oluştur</h2>
+            <p style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 20px;">
+                İndirilen HKS Excel dosyasını otomatik olarak e-Müstahsil Makbuzu taslak formatına dönüştürür.
+            </p>
+
+            <div class="form-group">
+                <label>HKS Excel Dosyası</label>
+                <div class="folder-select">
+                    <input type="text" id="txtHksFile" placeholder="HKS_Kunye_*.xlsx dosyasını seçin..." readonly>
+                    <button class="btn btn-secondary" id="btnSelectHksFile">Dosya Seç</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Kayıt Klasörü</label>
+                <div class="folder-select">
+                    <input type="text" id="txtMustahsilFolder" placeholder="Klasör seçin..." readonly>
+                    <button class="btn btn-secondary" id="btnSelectMustahsilFolder">Klasör Seç</button>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn" id="btnConvertMustahsil">
+                    🔄 Müstahsil Makbuzu Oluştur
+                </button>
+            </div>
+
+            <div id="status4" class="status hidden"></div>
+
+            <div id="mustahsilFileList" class="file-list hidden">
+                <h3>Oluşturulan Dosyalar</h3>
+                <div id="mustahsilFileItems"></div>
+            </div>
+        </div>
+
+        <!-- Adım 5: Portala Otomatik Yükle -->
+        <div class="card" id="step5">
+            <h2><span class="step">5</span> Portala Otomatik Yükle</h2>
+            <p style="color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 20px;">
+                Oluşturulan Müstahsil Excel dosyasını Hızlı portal'a otomatik yükler ve taslak olarak kaydeder.
+            </p>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Hızlı Portal Kullanıcı Adı</label>
+                    <input type="text" id="txtPortalUser" placeholder="Kullanıcı adı">
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="txtPortalPass" placeholder="Şifre">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Firma VKN (birden fazla firma varsa)</label>
+                <input type="text" id="txtPortalVkn" placeholder="Ör: 5419051998 (tek firma ise boş bırakın)">
+            </div>
+
+            <div class="form-group">
+                <label>Yüklenecek Müstahsil Excel Dosyası</label>
+                <div class="folder-select">
+                    <input type="text" id="txtPortalExcelFile" placeholder="Mustahsil_*.xlsx dosyasını seçin..." readonly>
+                    <button class="btn btn-secondary" id="btnSelectPortalExcelFile">Dosya Seç</button>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn" id="btnUploadPortal">
+                    🚀 Portala Yükle
+                </button>
+            </div>
+
+            <div id="status5" class="status hidden"></div>
+
+            <div id="portalLogContainer" class="file-list hidden" style="margin-top: 16px;">
+                <h3>İşlem Kaydı</h3>
+                <div id="portalLogItems" style="font-size: 13px; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Makbuz Öneki Seçim Modalı -->
+    <div id="onekModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 380px;">
+            <h3>📋 Makbuz Öneki Seçin</h3>
+            <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 20px;">
+                Portal'dan alınan makbuz öneklerinden birini seçin.
+            </p>
+            <div class="form-group">
+                <label>Makbuz Öneki</label>
+                <select id="selectOnekModal" style="width:100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); font-size: 16px;"></select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="btnOnekIptal">İptal</button>
+                <button class="btn" id="btnOnekOnayla">Seç</button>
+            </div>
+        </div>
+    </div>
+
+        <!-- Taslak Sayfası Açma Dialog -->
+    <div id="taslakAcModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h3>✅ İşlem Tamamlandı</h3>
+            <p style="color: rgba(255,255,255,0.7); font-size: 15px; margin: 20px 0;">
+                Taslaklar başarıyla portala kaydedildi.<br>
+                Taslak Müstahsiller sayfasını açmak ister misiniz?
+            </p>
+            <div class="modal-buttons" style="justify-content: center; gap: 16px;">
+                <button class="btn btn-secondary" id="btnTaslakHayir">Hayır</button>
+                <button class="btn" id="btnTaslakEvet">Evet, Aç</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMS Doğrulama Modalı -->
+    <div id="smsModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3>📱 SMS Doğrulama</h3>
+            <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 20px;">
+                Hızlı portal hesabınıza SMS kodu gönderildi. Lütfen kodu aşağıya girin.
+            </p>
+            <div class="form-group">
+                <label>SMS Kodu</label>
+                <input type="text" id="txtSmsKod" placeholder="6 haneli kod" style="font-size: 24px; text-align: center; letter-spacing: 8px;">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="btnSmsIptal">İptal</button>
+                <button class="btn" id="btnSmsOnayla">Doğrula</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hesap Ekleme Modal -->
+    <div id="accountModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 560px;">
+            <h3>Yeni Hesap Ekle</h3>
+            <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">🌿 HKS Bilgileri</p>
+            <div class="form-group">
+                <label>Firma Adı (Etiket)</label>
+                <input type="text" id="modalFirmaAdi" placeholder="ÇAKIR YAŞ SEBZE MEYVE...">
+            </div>
+            <div class="form-group">
+                <label>HKS Kullanıcı Adı</label>
+                <input type="text" id="modalUsername" placeholder="HKS kullanıcı adı">
+            </div>
+            <div class="form-group">
+                <label>HKS Şifresi</label>
+                <input type="password" id="modalPassword" placeholder="HKS şifresi">
+            </div>
+            <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin: 20px 0 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">🚀 Hızlı Portal Bilgileri</p>
+            <div class="form-group">
+                <label>Portal Kullanıcı Adı</label>
+                <input type="text" id="modalPortalUser" placeholder="Portal kullanıcı adı">
+            </div>
+            <div class="form-group">
+                <label>Portal Şifresi</label>
+                <input type="password" id="modalPortalPass" placeholder="Portal şifresi">
+            </div>
+            <div class="form-group">
+                <label>Portal VKN (birden fazla firma varsa boş bırakın)</label>
+                <input type="text" id="modalPortalVkn" placeholder="Firma VKN">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="btnCancelAccount">İptal</button>
+                <button class="btn" id="btnSaveAccount">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Account Management Elements
+        const selectAccount = document.getElementById('selectAccount');
+        const btnAddAccount = document.getElementById('btnAddAccount');
+        const accountModal = document.getElementById('accountModal');
+        const accountList = document.getElementById('accountList');
+        const modalFirmaAdi = document.getElementById('modalFirmaAdi');
+        const modalUsername = document.getElementById('modalUsername');
+        const modalPassword = document.getElementById('modalPassword');
+        const modalPortalUser = document.getElementById('modalPortalUser');
+        const modalPortalPass = document.getElementById('modalPortalPass');
+        const modalPortalVkn = document.getElementById('modalPortalVkn');
+        const btnSaveAccount = document.getElementById('btnSaveAccount');
+        const btnCancelAccount = document.getElementById('btnCancelAccount');
+
+        // Existing Elements
+        const txtUsername = document.getElementById('txtUsername');
+        const txtPassword = document.getElementById('txtPassword');
+        const txtCaptcha = document.getElementById('txtCaptcha');
+        const txtFilterName = document.getElementById('txtFilterName');
+        const btnLogin = document.getElementById('btnLogin');
+        const btnRefreshCaptcha = document.getElementById('btnRefreshCaptcha');
+        const captchaContainer = document.getElementById('captchaContainer');
+        const loginForm = document.getElementById('loginForm');
+        const loggedInInfo = document.getElementById('loggedInInfo');
+        const btnSelectFolder = document.getElementById('btnSelectFolder');
+        const btnExport = document.getElementById('btnExport');
+        const btnCloseBrowser = document.getElementById('btnCloseBrowser');
+        const txtFolder = document.getElementById('txtFolder');
+        const txtBaslangic = document.getElementById('txtBaslangic');
+        const txtBitis = document.getElementById('txtBitis');
+        const status1 = document.getElementById('status1');
+        const status3 = document.getElementById('status3');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const fileList = document.getElementById('fileList');
+        const fileItems = document.getElementById('fileItems');
+
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        txtBaslangic.value = formatDateForInput(firstDay);
+        txtBitis.value = formatDateForInput(today);
+
+        let savedFiles = [];
+        let accounts = [];
+        let editingAccountIndex = null;
+
+        // Account Management Functions
+        function loadAccounts() {
+            const stored = localStorage.getItem('hksAccounts');
+            accounts = stored ? JSON.parse(stored) : [];
+            updateAccountUI();
+        }
+
+        function saveAccounts() {
+            localStorage.setItem('hksAccounts', JSON.stringify(accounts));
+            updateAccountUI();
+        }
+
+        function updateAccountUI() {
+            // Update dropdown
+            selectAccount.innerHTML = '<option value="">-- Manuel Giriş --</option>';
+            accounts.forEach((acc, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = acc.firmaAdi;
+                selectAccount.appendChild(option);
+            });
+
+            // Update account list
+            if (accounts.length === 0) {
+                accountList.classList.add('hidden');
+            } else {
+                accountList.classList.remove('hidden');
+                accountList.innerHTML = '';
+                accounts.forEach((acc, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'account-item';
+                    item.innerHTML = `
+                        <div class="account-info">
+                            <div class="account-name">${acc.firmaAdi}</div>
+                            <div class="account-username">Kullanıcı: ${acc.username}</div>
+                        </div>
+                        <div class="account-buttons">
+                            <button class="btn btn-edit" onclick="editAccount(${index})">Düzenle</button>
+                            <button class="btn btn-delete" onclick="deleteAccount(${index})">Sil</button>
+                        </div>
+                    `;
+                    accountList.appendChild(item);
+                });
+            }
+        }
+
+        function deleteAccount(index) {
+            if (confirm(`"${accounts[index].firmaAdi}" hesabını silmek istediğinizden emin misiniz?`)) {
+                accounts.splice(index, 1);
+                saveAccounts();
+            }
+        }
+
+        function editAccount(index) {
+            editingAccountIndex = index;
+            const account = accounts[index];
+            modalFirmaAdi.value = account.firmaAdi;
+            modalUsername.value = account.username;
+            modalPassword.value = account.password;
+            modalPortalUser.value = account.portalKullaniciAdi || '';
+            modalPortalPass.value = account.portalSifre || '';
+            modalPortalVkn.value = account.portalVkn || '';
+            document.querySelector('#accountModal h3').textContent = 'Hesap Düzenle';
+            accountModal.classList.remove('hidden');
+        }
+
+        // Make functions available globally
+        window.deleteAccount = deleteAccount;
+        window.editAccount = editAccount;
+
+        // Event Listeners for Account Management
+        btnAddAccount.addEventListener('click', () => {
+            editingAccountIndex = null;
+            modalFirmaAdi.value = '';
+            modalUsername.value = '';
+            modalPassword.value = '';
+            modalPortalUser.value = '';
+            modalPortalPass.value = '';
+            modalPortalVkn.value = '';
+            document.querySelector('#accountModal h3').textContent = 'Yeni Hesap Ekle';
+            accountModal.classList.remove('hidden');
+        });
+
+        btnCancelAccount.addEventListener('click', () => {
+            accountModal.classList.add('hidden');
+        });
+
+        btnSaveAccount.addEventListener('click', () => {
+            const firmaAdi = modalFirmaAdi.value.trim();
+            const username = modalUsername.value.trim();
+            const password = modalPassword.value.trim();
+            const portalKullaniciAdi = modalPortalUser.value.trim();
+            const portalSifre = modalPortalPass.value.trim();
+            const portalVkn = modalPortalVkn.value.trim();
+
+            if (!firmaAdi || !username || !password) {
+                alert('Lütfen HKS alanlarını doldurun!');
+                return;
+            }
+
+            const hesap = { firmaAdi, username, password, portalKullaniciAdi, portalSifre, portalVkn };
+
+            if (editingAccountIndex !== null) {
+                accounts[editingAccountIndex] = hesap;
+            } else {
+                accounts.push(hesap);
+            }
+
+            saveAccounts();
+            accountModal.classList.add('hidden');
+            editingAccountIndex = null;
+        });
+
+        selectAccount.addEventListener('change', (e) => {
+            const index = e.target.value;
+            if (index === '') {
+                txtUsername.value = '';
+                txtPassword.value = '';
+                txtFilterName.value = '';
+                if (document.getElementById('txtPortalUser')) document.getElementById('txtPortalUser').value = '';
+                if (document.getElementById('txtPortalPass')) document.getElementById('txtPortalPass').value = '';
+                if (document.getElementById('txtPortalVkn')) document.getElementById('txtPortalVkn').value = '';
+            } else {
+                const account = accounts[index];
+                txtUsername.value = account.username;
+                txtPassword.value = account.password;
+                txtFilterName.value = account.firmaAdi;
+                if (document.getElementById('txtPortalUser')) document.getElementById('txtPortalUser').value = account.portalKullaniciAdi || '';
+                if (document.getElementById('txtPortalPass')) document.getElementById('txtPortalPass').value = account.portalSifre || '';
+                if (document.getElementById('txtPortalVkn')) document.getElementById('txtPortalVkn').value = account.portalVkn || '';
+            }
+        });
+
+        // Initialize accounts
+        loadAccounts();
+
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateForHKS(dateStr) {
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function showStatus(element, message, type) {
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.classList.remove('hidden');
+        }
+
+        function hideStatus(element) {
+            element.classList.add('hidden');
+        }
+
+        function addFileToList(filePath, fileName, count) {
+            savedFiles.push({ filePath, fileName, count });
+            updateFileList();
+        }
+
+        function updateFileList() {
+            if (savedFiles.length === 0) {
+                fileList.classList.add('hidden');
+                return;
+            }
+
+            fileList.classList.remove('hidden');
+            fileItems.innerHTML = '';
+
+            savedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.fileName}</div>
+                        <div class="file-count">${file.count} künye kaydedildi</div>
+                        <div class="file-path">${file.filePath}</div>
+                    </div>
+                    <button class="btn btn-open-file" onclick="openFile('${file.filePath.replace(/\\/g, '\\\\')}')">
+                        Dosyayı Aç
+                    </button>
+                `;
+                fileItems.appendChild(fileItem);
+            });
+        }
+
+        async function openFile(filePath) {
+            const { ipcRenderer } = require('electron');
+            const result = await ipcRenderer.invoke('open-file', filePath);
+            if (!result.success) {
+                showStatus(status3, 'Dosya açılamadı!', 'error');
+            }
+        }
+
+        function generateMockCaptcha() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let captcha = '';
+            for (let i = 0; i < 6; i++) {
+                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return captcha;
+        }
+
+        let currentCaptcha = generateMockCaptcha();
+
+        async function initLogin() {
+            const { ipcRenderer } = require('electron');
+            captchaContainer.innerHTML = '<span style="color: #666; font-size: 12px;">Yükleniyor...</span>';
+
+            const result = await ipcRenderer.invoke('init-login');
+            if (result.success && result.captcha) {
+                captchaContainer.innerHTML = `<img src="${result.captcha}" alt="Captcha" style="max-width: 200px; border-radius: 6px;">`;
+            } else {
+                const msg = (result && result.message) ? result.message : 'Captcha yüklenemedi';
+                captchaContainer.innerHTML = `<span style="color: #ff4444; font-size: 11px; line-height:1.3;">${msg}</span>`;
+            }
+        }
+
+        initLogin();
+
+        btnRefreshCaptcha.addEventListener('click', async () => {
+            const { ipcRenderer } = require('electron');
+            txtCaptcha.value = '';
+            captchaContainer.innerHTML = '<span style="color: #666; font-size: 12px;">Yenileniyor...</span>';
+
+            const result = await ipcRenderer.invoke('refresh-captcha');
+            if (result.success && result.captcha) {
+                captchaContainer.innerHTML = `<img src="${result.captcha}" alt="Captcha" style="max-width: 200px; border-radius: 6px;">`;
+            } else {
+                const msg = (result && result.message) ? result.message : 'Captcha yüklenemedi';
+                captchaContainer.innerHTML = `<span style="color: #ff4444; font-size: 11px; line-height:1.3;">${msg}</span>`;
+            }
+        });
+
+        btnLogin.addEventListener('click', async () => {
+            const username = txtUsername.value.trim();
+            const password = txtPassword.value.trim();
+            const captcha = txtCaptcha.value.trim();
+
+            if (!username || !password) {
+                showStatus(status1, 'Kullanıcı adı ve şifre gerekli!', 'error');
+                return;
+            }
+
+            if (!captcha) {
+                showStatus(status1, 'Güvenlik kodunu girin!', 'error');
+                return;
+            }
+
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = '<span class="loading-spinner"></span> Giriş yapılıyor...';
+            hideStatus(status1);
+
+            const { ipcRenderer } = require('electron');
+            const loginResult = await ipcRenderer.invoke('do-login', { username, password, captcha });
+
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = 'Giriş Yap';
+
+            if (loginResult.success && loginResult.loggedIn) {
+                loginForm.classList.add('hidden');
+                loggedInInfo.classList.remove('hidden');
+                btnExport.disabled = false;
+                btnCloseBrowser.disabled = false;
+
+                // Filtre bos ise secili hesabin firma adini veya kullanici adini yaz
+                if (!txtFilterName.value.trim()) {
+                    const idx = selectAccount.value;
+                    if (idx !== '' && accounts[idx]) {
+                        txtFilterName.value = accounts[idx].firmaAdi || '';
+                    }
+                }
+                if (!txtFilterName.value.trim() && loginResult.displayName) {
+                    txtFilterName.value = loginResult.displayName;
+                }
+                showStatus(
+                    status1,
+                    `Giriş başarılı! Filtre: ${txtFilterName.value.trim() || '(yok — tum kayitlar)'}`,
+                    'success',
+                );
+
+                await ipcRenderer.invoke('close-popup');
+            } else {
+                showStatus(status1, loginResult.message || 'Giriş başarısız!', 'error');
+                currentCaptcha = generateMockCaptcha();
+                initLogin();
+                txtCaptcha.value = '';
+            }
+        });
+
+        txtCaptcha.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                btnLogin.click();
+            }
+        });
+
+        btnSelectFolder.addEventListener('click', async () => {
+            const { ipcRenderer } = require('electron');
+            const result = await ipcRenderer.invoke('select-folder');
+            if (result.success) {
+                txtFolder.value = result.path;
+                showStatus(status3, 'Klasör seçildi! Excel dosyaları buraya kaydedilecek.', 'info');
+                setTimeout(() => hideStatus(status3), 3000);
+            }
+        });
+
+        btnExport.addEventListener('click', async () => {
+            const selectedTypes = [];
+            if (document.getElementById('chkReferans').checked) selectedTypes.push('Referans');
+            if (document.getElementById('chkNihaiTuketim').checked) selectedTypes.push('Nihai Tüketim');
+            if (document.getElementById('chkFire').checked) selectedTypes.push('Fire');
+
+            if (selectedTypes.length === 0) {
+                showStatus(status3, 'En az bir künye türü seçin!', 'error');
+                return;
+            }
+            if (!txtFolder.value) {
+                showStatus(status3, 'Kayıt klasörü seçin!', 'error');
+                return;
+            }
+            if (!txtBaslangic.value || !txtBitis.value) {
+                showStatus(status3, 'Tarih aralığı seçin!', 'error');
+                return;
+            }
+
+            const portalUser = document.getElementById('txtPortalUser').value.trim();
+            const portalPass = document.getElementById('txtPortalPass').value.trim();
+            const portalVkn  = document.getElementById('txtPortalVkn').value.trim();
+            const filterName = document.getElementById('txtFilterName').value.trim();
+            if (!filterName) {
+                showStatus(status3, 'Filtre adi bos. Hesap secin veya Malın Sahibi/Bildirimci adini yazin (orn: AHMET YILMAZ).', 'error');
+                btnExport.disabled = false;
+                btnExport.innerHTML = "Excel'e Aktar";
+                return;
+            }
+
+            btnExport.disabled = true;
+            btnExport.innerHTML = '<span class="loading-spinner"></span> İşleniyor...';
+            progressBar.classList.add('active');
+            savedFiles = [];
+
+            const { ipcRenderer } = require('electron');
+            let lastHksFile = null;
+
+            // ── ADIM 1: HKS'den Excel'e aktar ──
+            for (let i = 0; i < selectedTypes.length; i++) {
+                const kunyeTuru = selectedTypes[i];
+                progressFill.style.width = `${((i + 0.5) / (selectedTypes.length * 3)) * 100}%`;
+                showStatus(status3, `[1/3] HKS çekiliyor: ${kunyeTuru} (${i+1}/${selectedTypes.length})`, 'info');
+
+                const result = await ipcRenderer.invoke('export-excel', {
+                    kunyeTuru,
+                    baslangicTarihi: formatDateForHKS(txtBaslangic.value),
+                    bitisTarihi: formatDateForHKS(txtBitis.value),
+                    savePath: txtFolder.value,
+                    filterName
+                });
+
+                if (result.success) {
+                    const ekstra = result.message ? ` (${result.message})` : '';
+                    showStatus(status3, `[1/3] ${kunyeTuru}: ${result.count} künye kaydedildi ✓${ekstra}`, 'success');
+                    const fileName = result.filePath.split('\\').pop().split('/').pop();
+                    addFileToList(result.filePath, fileName, result.count);
+                    lastHksFile = result.filePath;
+                } else {
+                    showStatus(status3, `[1/3] ${kunyeTuru}: ${result.message || 'Indirme basarisiz'}`, 'error');
+                }
+            }
+
+            if (!lastHksFile) {
+                showStatus(status3, 'HKS verisi indirilemedi, işlem durdu. Captcha/oturum veya sayfa kopmasi olabilir — tekrar giris yapip deneyin.', 'error');
+                btnExport.disabled = false;
+                btnExport.innerHTML = "Excel'e Aktar";
+                return;
+            }
+
+            // ── ADIM 2: Müstahsil Excel'e dönüştür ──
+            progressFill.style.width = '50%';
+            showStatus(status3, '[2/3] Müstahsil formatına dönüştürülüyor...', 'info');
+
+            const convertResult = await ipcRenderer.invoke('convert-to-mustahsil', {
+                hksFilePath: lastHksFile,
+                savePath: txtFolder.value
+            });
+
+            if (!convertResult.success) {
+                showStatus(status3, `[2/3] Dönüştürme hatası: ${convertResult.message}`, 'error');
+                btnExport.disabled = false;
+                btnExport.innerHTML = "Excel'e Aktar";
+                return;
+            }
+
+            showStatus(status3, `[2/3] Müstahsil Excel oluşturuldu (${convertResult.count} satır) ✓`, 'success');
+            document.getElementById('txtPortalExcelFile').value = convertResult.filePath;
+
+            // ── ADIM 3: Portala yükle (portal bilgisi varsa) ──
+            if (portalUser && portalPass) {
+                progressFill.style.width = '70%';
+                showStatus(status3, '[3/3] Hızlı portala yükleniyor...', 'info');
+
+                // Log ekranını göster
+                document.getElementById('portalLogContainer').classList.remove('hidden');
+                document.getElementById('portalLogItems').innerHTML = '';
+
+                const uploadResult = await ipcRenderer.invoke('upload-mustahsil-portal', {
+                    kullaniciAdi: portalUser,
+                    sifre: portalPass,
+                    vkn: portalVkn,
+                    excelFilePath: convertResult.filePath
+                });
+
+                progressFill.style.width = '100%';
+                if (uploadResult.success) {
+                    showStatus(status3, '✅ Tüm işlemler tamamlandı! HKS → Müstahsil Excel → Portal', 'success');
+                } else {
+                    showStatus(status3, `[3/3] Portal yükleme hatası: ${uploadResult.message}`, 'error');
+                }
+            } else {
+                progressFill.style.width = '100%';
+                showStatus(status3, '✅ HKS çekildi ve Müstahsil Excel oluşturuldu. (Portal bilgisi girilmediği için yükleme yapılmadı)', 'success');
+            }
+
+            btnExport.disabled = false;
+            btnExport.innerHTML = "Excel'e Aktar";
+        });
+
+        btnCloseBrowser.addEventListener('click', async () => {
+            const { ipcRenderer } = require('electron');
+            await ipcRenderer.invoke('close-browser');
+
+            loginForm.classList.remove('hidden');
+            loggedInInfo.classList.add('hidden');
+            btnExport.disabled = true;
+            btnCloseBrowser.disabled = true;
+            txtUsername.value = '';
+            txtPassword.value = '';
+            txtCaptcha.value = '';
+            txtFolder.value = '';
+            hideStatus(status1);
+            hideStatus(status3);
+            progressBar.classList.remove('active');
+            progressFill.style.width = '0%';
+            savedFiles = [];
+            fileList.classList.add('hidden');
+
+            initLogin();
+            showStatus(status1, 'Oturum kapatıldı. Tekrar giriş yapabilirsiniz.', 'info');
+            setTimeout(() => hideStatus(status1), 3000);
+        });
+
+        // ====== ADIM 4: Müstahsil Dönüştürme ======
+        const txtHksFile = document.getElementById('txtHksFile');
+        const txtMustahsilFolder = document.getElementById('txtMustahsilFolder');
+        const btnSelectHksFile = document.getElementById('btnSelectHksFile');
+        const btnSelectMustahsilFolder = document.getElementById('btnSelectMustahsilFolder');
+        const btnConvertMustahsil = document.getElementById('btnConvertMustahsil');
+        const status4 = document.getElementById('status4');
+        const mustahsilFileList = document.getElementById('mustahsilFileList');
+        const mustahsilFileItems = document.getElementById('mustahsilFileItems');
+
+        btnSelectHksFile.addEventListener('click', async () => {
+            const { ipcRenderer } = require('electron');
+            const result = await ipcRenderer.invoke('select-hks-file');
+            if (result.success) {
+                txtHksFile.value = result.path;
+                // Aynı klasörü otomatik doldur
+                const parts = result.path.replace(/\\/g, '/').split('/');
+                parts.pop();
+                txtMustahsilFolder.value = parts.join('\\').replace(/\//g, '\\');
+            }
+        });
+
+        btnSelectMustahsilFolder.addEventListener('click', async () => {
+            const { ipcRenderer } = require('electron');
+            const result = await ipcRenderer.invoke('select-folder');
+            if (result.success) {
+                txtMustahsilFolder.value = result.path;
+            }
+        });
+
+        btnConvertMustahsil.addEventListener('click', async () => {
+            if (!txtHksFile.value) {
+                showStatus(status4, 'Önce HKS Excel dosyasını seçin!', 'error');
+                return;
+            }
+            if (!txtMustahsilFolder.value) {
+                showStatus(status4, 'Kayıt klasörü seçin!', 'error');
+                return;
+            }
+
+            btnConvertMustahsil.disabled = true;
+            btnConvertMustahsil.innerHTML = '<span class="loading-spinner"></span> Dönüştürülüyor...';
+            showStatus(status4, 'İşleniyor...', 'info');
+
+            const { ipcRenderer } = require('electron');
+            const result = await ipcRenderer.invoke('convert-to-mustahsil', {
+                hksFilePath: txtHksFile.value,
+                savePath: txtMustahsilFolder.value
+            });
+
+            btnConvertMustahsil.disabled = false;
+            btnConvertMustahsil.innerHTML = '🔄 Müstahsil Makbuzu Oluştur';
+
+            if (result.success) {
+                showStatus(status4, `✅ ${result.count} satır başarıyla dönüştürüldü!`, 'success');
+                // Adım 5 için otomatik doldur
+                if (document.getElementById('txtPortalExcelFile')) {
+                    document.getElementById('txtPortalExcelFile').value = result.filePath;
+                }
+                mustahsilFileList.classList.remove('hidden');
+                const fileName = result.filePath.split('\\').pop().split('/').pop();
+                mustahsilFileItems.innerHTML = `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <div class="file-name">${fileName}</div>
+                            <div class="file-count">${result.count} satır dönüştürüldü</div>
+                            <div class="file-path">${result.filePath}</div>
+                        </div>
+                        <button class="btn btn-open-file" onclick="openFile('${result.filePath.replace(/\\/g, '\\\\')}')">
+                            Dosyayı Aç
+                        </button>
+                    </div>
+                `;
+            } else {
+                showStatus(status4, `Hata: ${result.message}`, 'error');
+            }
+        });
+
+        // ====== ADIM 5: Portala Yükle ======
+        const txtPortalUser = document.getElementById('txtPortalUser');
+        const txtPortalPass = document.getElementById('txtPortalPass');
+        const txtPortalVkn = document.getElementById('txtPortalVkn');
+        const txtPortalExcelFile = document.getElementById('txtPortalExcelFile');
+        const btnSelectPortalExcelFile = document.getElementById('btnSelectPortalExcelFile');
+        const btnUploadPortal = document.getElementById('btnUploadPortal');
+        const status5 = document.getElementById('status5');
+        const portalLogContainer = document.getElementById('portalLogContainer');
+        const portalLogItems = document.getElementById('portalLogItems');
+
+        btnSelectPortalExcelFile.addEventListener('click', async () => {
+            const { ipcRenderer } = require('electron');
+            const result = await ipcRenderer.invoke('select-hks-file');
+            if (result.success) {
+                txtPortalExcelFile.value = result.path;
+            }
+        });
+
+        // Dönüştürme tamamlandığında dosyayı otomatik doldur
+        // (step4 convert sonrası txtPortalExcelFile'ı da doldur)
+        const origConvert = btnConvertMustahsil.onclick;
+        document.addEventListener('mustahsil-converted', (e) => {
+            if (e.detail && e.detail.filePath) {
+                txtPortalExcelFile.value = e.detail.filePath;
+            }
+        });
+
+        // Log listener
+        const { ipcRenderer: ipcR2 } = require('electron');
+        ipcR2.on('mustahsil-portal-log', (event, { mesaj, tip, zaman }) => {
+            portalLogContainer.classList.remove('hidden');
+            const renk = tip === 'hata' ? '#ef4444' : tip === 'basari' ? '#22c55e' : tip === 'uyari' ? '#f59e0b' : 'rgba(255,255,255,0.7)';
+            const div = document.createElement('div');
+            div.style.cssText = `color: ${renk}; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05);`;
+            div.textContent = `[${zaman}] ${mesaj}`;
+            portalLogItems.appendChild(div);
+            portalLogItems.scrollTop = portalLogItems.scrollHeight;
+        });
+
+        btnUploadPortal.addEventListener('click', async () => {
+            const kullaniciAdi = txtPortalUser.value.trim();
+            const sifre = txtPortalPass.value.trim();
+            const excelFilePath = txtPortalExcelFile.value.trim();
+
+            if (!kullaniciAdi || !sifre) {
+                showStatus(status5, 'Kullanıcı adı ve şifre gerekli!', 'error');
+                return;
+            }
+            if (!excelFilePath) {
+                showStatus(status5, 'Önce Müstahsil Excel dosyasını seçin!', 'error');
+                return;
+            }
+
+            btnUploadPortal.disabled = true;
+            btnUploadPortal.innerHTML = '<span class="loading-spinner"></span> Yükleniyor...';
+            portalLogContainer.classList.remove('hidden');
+            portalLogItems.innerHTML = '';
+            hideStatus(status5);
+
+            try {
+                const { ipcRenderer } = require('electron');
+                const result = await ipcRenderer.invoke('upload-mustahsil-portal', {
+                    kullaniciAdi,
+                    sifre,
+                    vkn: txtPortalVkn.value.trim(),
+                    excelFilePath
+                });
+
+                if (result && result.success) {
+                    showStatus(status5, '✅ Taslaklar başarıyla portala yüklendi!', 'success');
+                } else {
+                    showStatus(status5, `Hata: ${(result && result.message) || 'Yukleme basarisiz'}`, 'error');
+                }
+            } catch (err) {
+                showStatus(status5, `Hata: ${err.message || err}`, 'error');
+            } finally {
+                btnUploadPortal.disabled = false;
+                btnUploadPortal.innerHTML = '🚀 Portala Yükle';
+            }
+        });
+
+        // Taslak Sayfası Dialog
+        const taslakAcModal = document.getElementById('taslakAcModal');
+        const btnTaslakEvet = document.getElementById('btnTaslakEvet');
+        const btnTaslakHayir = document.getElementById('btnTaslakHayir');
+
+        ipcR2.on('sor-taslak-ac', () => {
+            taslakAcModal.classList.remove('hidden');
+        });
+
+        btnTaslakEvet.addEventListener('click', () => {
+            taslakAcModal.classList.add('hidden');
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('taslak-ac-cevap', true);
+        });
+
+        btnTaslakHayir.addEventListener('click', () => {
+            taslakAcModal.classList.add('hidden');
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('taslak-ac-cevap', false);
+        });
+
+        // Makbuz Öneki Modal
+        const onekModal = document.getElementById('onekModal');
+        const selectOnekModal = document.getElementById('selectOnekModal');
+        const btnOnekOnayla = document.getElementById('btnOnekOnayla');
+        const btnOnekIptal = document.getElementById('btnOnekIptal');
+
+        ipcR2.on('makbuz-onek-gerekli', (event, secenekler) => {
+            selectOnekModal.innerHTML = '';
+            secenekler.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.value;
+                opt.textContent = s.text || s.value;
+                selectOnekModal.appendChild(opt);
+            });
+            onekModal.classList.remove('hidden');
+        });
+
+        btnOnekOnayla.addEventListener('click', () => {
+            const secilen = selectOnekModal.value;
+            if (!secilen) return;
+            onekModal.classList.add('hidden');
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('makbuz-onek-secildi', secilen);
+        });
+
+        btnOnekIptal.addEventListener('click', () => {
+            onekModal.classList.add('hidden');
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('makbuz-onek-iptal');
+        });
+
+                // SMS Doğrulama Modal
+        const smsModal = document.getElementById('smsModal');
+        const txtSmsKod = document.getElementById('txtSmsKod');
+        const btnSmsOnayla = document.getElementById('btnSmsOnayla');
+        const btnSmsIptal = document.getElementById('btnSmsIptal');
+
+        // Portal taslak sayfası açılınca Electron penceresinde göster
+        ipcR2.on('open-portal-window', (event, data) => {
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('open-portal-window', data);
+        });
+
+        ipcR2.on('mustahsil-otp-gerekli', () => {
+            smsModal.classList.remove('hidden');
+            txtSmsKod.value = '';
+            txtSmsKod.focus();
+        });
+
+        btnSmsOnayla.addEventListener('click', () => {
+            const kod = txtSmsKod.value.trim();
+            if (!kod) return;
+            smsModal.classList.add('hidden');
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('mustahsil-otp-girildi', kod);
+        });
+
+        btnSmsIptal.addEventListener('click', () => {
+            smsModal.classList.add('hidden');
+            const { ipcRenderer } = require('electron');
+            ipcRenderer.send('mustahsil-otp-iptal');
+        });
+
+        txtSmsKod.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') btnSmsOnayla.click();
+        });
+
+    </script>
+</body>
+</html>
+

@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { supabase, supabaseConfigured } from './supabaseClient';
 import Login from './pages/Login';
 import HubLayout from './layout/HubLayout';
 import Home from './pages/Home';
-import Hks from './pages/tools/Hks';
-import HizliXml from './pages/tools/HizliXml';
-import MuhasebeFisi from './pages/tools/MuhasebeFisi';
-import Uyumsoft from './pages/tools/Uyumsoft';
-import StokKontrol from './pages/tools/StokKontrol';
-import Tahakkuk from './pages/tools/Tahakkuk';
+import Firmalar from './pages/Firmalar';
+import ToolEmbed from './pages/ToolEmbed';
 
 function SetupHint() {
   return (
@@ -19,11 +15,15 @@ function SetupHint() {
         <p className="setup-hint">
           Supabase ayarları eksik. <code>.env</code> dosyasına
           {' '}<code>VITE_SUPABASE_URL</code> ve <code>VITE_SUPABASE_ANON_KEY</code> ekleyin.
-          Ayrıntılar için README.md.
         </p>
       </div>
     </div>
   );
+}
+
+function ToolRoute() {
+  const { toolId } = useParams();
+  return <ToolEmbed toolId={toolId} />;
 }
 
 export default function App() {
@@ -89,12 +89,8 @@ export default function App() {
       <Routes>
         <Route element={<HubLayout profile={profile} />}>
           <Route path="/" element={<Home profile={profile} />} />
-          <Route path="/hks" element={<Hks profile={profile} />} />
-          <Route path="/hizli-xml" element={<HizliXml profile={profile} />} />
-          <Route path="/muhasebe-fisi" element={<MuhasebeFisi profile={profile} />} />
-          <Route path="/uyumsoft-unideva" element={<Uyumsoft profile={profile} />} />
-          <Route path="/stok-kontrol" element={<StokKontrol profile={profile} />} />
-          <Route path="/tahakkuk" element={<Tahakkuk profile={profile} />} />
+          <Route path="/firmalar" element={<Firmalar />} />
+          <Route path="/:toolId" element={<ToolRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

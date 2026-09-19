@@ -1,0 +1,2402 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tahakkuk Makbuz</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#131516;--sf:#1a1d1f;--sf2:#222628;--bd:#2e3234;
+  --gold:#d4a843;--tx:#e8e4df;--txD:#8a8580;--grn:#4caf7c;--red:#cf6659;--blu:#5b9bd5;
+  --font-ui:'Sora',sans-serif;
+  --font-display:'Fraunces',Georgia,serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+body{
+  background:var(--bg);color:var(--tx);font-family:var(--font-ui);min-height:100vh;
+  font-size:14px;line-height:1.45;font-weight:400;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+input,select,textarea{
+  background:var(--sf2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);
+  padding:10px 12px;font-size:13.5px;outline:none;font-family:var(--font-ui);width:100%;font-weight:500;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+textarea{resize:vertical;min-height:140px;line-height:1.5}
+button{font-family:var(--font-ui);cursor:pointer;letter-spacing:-0.01em}
+label.field{display:block;font-size:10.5px;color:var(--txD);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:7px;font-weight:600}
+.hint{font-size:12.5px;color:var(--txD);margin-top:6px;line-height:1.45}
+.header{background:var(--sf);border-bottom:1px solid var(--bd);padding:14px 22px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--gold),#a07c1e);color:#1a1814;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display)}
+.header h1{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.02em}
+.header p{font-size:12.5px;color:var(--txD);margin-top:2px}
+.container{max-width:1100px;margin:0 auto;padding:16px 18px 40px}
+.tabs{display:flex;gap:4px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:4px;margin-bottom:14px;overflow-x:auto}
+.tab{flex:1;min-width:110px;border:none;background:transparent;color:var(--txD);padding:10px 12px;border-radius:7px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.tab:hover{color:var(--tx);background:var(--sf2)}
+.tab.active{background:linear-gradient(135deg,var(--gold),#a07c1e);color:#1a1814}
+.panel{display:none}
+.panel.active{display:block}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:14px}
+.card-title{font-family:var(--font-display);font-size:17px;font-weight:600;margin-bottom:14px;letter-spacing:-0.02em}
+.page-bar{background:linear-gradient(90deg,#1e4d7b,#2a6a9e);color:#fff;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.page-bar h2{font-family:var(--font-display);font-size:18px;font-weight:600;margin:0;letter-spacing:-0.02em}
+.page-bar .crumb{font-size:11.5px;opacity:.85;font-weight:500}
+.filter-panel{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:16px 16px 12px;margin-bottom:12px}
+.filter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 14px;margin-bottom:12px}
+@media(max-width:900px){.filter-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.filter-grid{grid-template-columns:1fr}}
+.filter-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
+.action-strip{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 0 14px}
+.btn-pill{border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#fff;display:inline-flex;align-items:center;gap:8px;letter-spacing:-0.01em}
+.btn-pill:disabled{opacity:.45;cursor:not-allowed}
+.btn-pill-sorgula{background:#1e4d7b}
+.btn-pill-excel{background:#43a047}
+.btn-pill-indir{background:#c62828}
+.btn-pill-wa{background:#25d366;color:#0b1a10}
+.btn-pill-ghost{background:var(--sf2);color:var(--tx);border:1px solid var(--bd)}
+.results-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.results-head{background:var(--sf2);border-bottom:1px solid var(--bd);padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.results-head h3{font-family:var(--font-display);font-size:15px;font-weight:600;margin:0;letter-spacing:-0.01em}
+.results-head .hint{margin:0}
+.results-card .table-wrap{margin:0;border:none;border-radius:0}
+.row{display:grid;gap:12px;margin-bottom:14px}
+.row-2{grid-template-columns:1fr 1fr}
+.row-3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:800px){.row-2,.row-3{grid-template-columns:1fr}.tab{min-width:90px;font-size:12px;padding:9px 8px}}
+.btn{border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#a07c1e);color:#1a1814}
+.btn-ghost{background:transparent;border:1px solid var(--bd);color:var(--txD)}
+.btn-blu{background:var(--blu);color:#fff}
+.btn-grn{background:var(--grn);color:#fff}
+.btn-danger{background:transparent;border:1px solid rgba(207,102,89,.5);color:#f0b4ad}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.subcard{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+.subcard h3{font-size:11px;font-weight:600;color:var(--txD);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.msg{font-size:13.5px;padding:10px 12px;border-radius:8px;margin-bottom:12px;display:none;font-weight:500}
+.msg.show{display:block}
+.msg.err{background:rgba(207,102,89,.12);border:1px solid rgba(207,102,89,.35);color:#f0b4ad}
+.msg.ok{background:rgba(76,175,124,.12);border:1px solid rgba(76,175,124,.35);color:#a8e0c2}
+.msg.info{background:rgba(91,155,213,.1);border:1px solid rgba(91,155,213,.3);color:#b7d4ef}
+.table-wrap{overflow:auto;border:1px solid var(--bd);border-radius:8px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;color:var(--txD);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;background:var(--sf2);border-bottom:1px solid var(--bd);font-family:var(--font-ui)}
+td{padding:10px 12px;border-bottom:1px solid var(--bd);font-family:var(--font-ui);font-weight:500}
+td.right,.right{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+.m-ad{font-family:var(--font-ui)!important;font-weight:600!important;letter-spacing:-0.01em}
+details.adv{margin-top:8px}
+details.adv summary{cursor:pointer;color:var(--txD);font-size:12.5px;font-weight:600;margin-bottom:10px}
+.sgk-captcha-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(8,10,12,.72);backdrop-filter:blur(4px);padding:18px}
+.sgk-captcha-modal[hidden]{display:none!important}
+.sgk-captcha-card{width:min(380px,100%);background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:20px;box-shadow:0 18px 48px rgba(0,0,0,.45)}
+.sgk-captcha-card h3{font-family:var(--font-display);font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-0.02em}
+.sgk-captcha-img-wrap{background:#fff;border-radius:8px;padding:10px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;min-height:70px}
+.sgk-captcha-img-wrap img{max-width:100%;max-height:90px;image-rendering:pixelated}
+.log{margin-top:12px;font-size:11.5px;color:var(--txD);font-family:var(--font-mono);white-space:pre-wrap;max-height:160px;overflow:auto;background:var(--sf2);border-radius:8px;padding:10px;line-height:1.5}
+.makbuz-wrap{margin-top:12px;display:none}
+.makbuz-wrap.show{display:block}
+.makbuz-card{--mb:#1a3d5d;--mb2:#2a5a7a;--mbLine:#d7e0ea;--mbBg:#fff;--mbMuted:#7a8fa3;background:var(--mbBg);color:#1a2a3a;border-radius:10px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.35);font-family:var(--font-ui);max-width:520px}
+.makbuz-head{background:var(--mb);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.makbuz-head h2{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:-0.01em;line-height:1.35;margin:0}
+.makbuz-tarih{text-align:right;flex-shrink:0}
+.makbuz-tarih span{display:block;font-size:10px;opacity:.7;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.makbuz-tarih strong{font-size:13px;font-weight:600;font-family:var(--font-mono)}
+.makbuz-musteri{margin:14px 16px 0;border:1px solid var(--mbLine);border-left:4px solid var(--mb);border-radius:6px;padding:10px 14px}
+.makbuz-musteri span{display:block;font-size:10px;color:var(--mbMuted);letter-spacing:.08em;font-weight:600;text-transform:uppercase}
+.makbuz-musteri strong{display:block;margin-top:4px;font-family:var(--font-display);font-size:20px;color:var(--mb);font-weight:600;letter-spacing:-0.02em}
+.makbuz-table{width:calc(100% - 32px);margin:14px 16px 0;border-collapse:collapse}
+.makbuz-table th{text-align:left;font-size:10.5px;color:var(--mb2);padding:8px 6px;border-bottom:1px solid var(--mbLine);font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:transparent}
+.makbuz-table th:last-child,.makbuz-table td:last-child{text-align:right}
+.makbuz-table td{padding:10px 6px;border-bottom:1px solid #eef2f6;font-size:13px;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.makbuz-table td:nth-child(2){font-family:var(--font-ui);font-weight:600}
+.makbuz-toplam{text-align:right;padding:12px 22px 6px}
+.makbuz-toplam span{display:block;font-size:10px;color:var(--mbMuted);letter-spacing:.08em;font-weight:600;text-transform:uppercase}
+.makbuz-toplam strong{display:block;margin-top:2px;font-size:24px;color:var(--mb);font-weight:600;font-family:var(--font-display);letter-spacing:-0.02em}
+.makbuz-yalniz{margin:10px 16px 16px;border:1px solid var(--mbLine);border-radius:6px;padding:10px 14px}
+.makbuz-yalniz span{display:block;font-size:10px;color:var(--mbMuted);letter-spacing:.08em;font-weight:600;text-transform:uppercase}
+.makbuz-yalniz strong{display:block;margin-top:4px;font-size:12.5px;color:var(--mb);font-weight:600;letter-spacing:.01em;line-height:1.45;font-family:var(--font-display)}
+@media print{
+  body *{visibility:hidden}
+  .makbuz-wrap,.makbuz-wrap *{visibility:visible}
+  .makbuz-wrap{position:absolute;left:0;top:0;margin:0}
+  .makbuz-card{box-shadow:none;max-width:100%}
+}
+</style>
+</head>
+<body>
+<script>
+try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'); } catch (e) { window.__MUSAVIRIM_CLOUD__ = {}; }
+</script>
+<script src="/tools/cloud-bridge.js"></script>
+  <div class="header">
+    <div class="logo">TM</div>
+    <div>
+      <h1>Tahakkuk Makbuz</h1>
+      <p>Sorgula → Önizle → WhatsApp</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="msg" class="msg"></div>
+
+    <nav class="tabs" id="anaTabs" role="tablist">
+      <button type="button" class="tab active" data-tab="islem">Islem</button>
+      <button type="button" class="tab" data-tab="mukellef">Mukellefler</button>
+      <button type="button" class="tab" data-tab="ayarlar">Ayarlar</button>
+    </nav>
+
+    <!-- ISLEM -->
+    <div class="panel active" id="panel-islem">
+      <div class="page-bar">
+        <h2>Aylık Ödeme Listesi</h2>
+        <div class="crumb">İşlem · Seç → Sorgula → Gönder</div>
+      </div>
+
+      <div class="filter-panel">
+        <div class="filter-grid">
+          <div>
+            <label class="field">Mükellef ara</label>
+            <input id="mukellefAra" type="search" placeholder="Unvan / VKN ara…" autocomplete="off" />
+          </div>
+          <div>
+            <label class="field">Ne gönderilecek?</label>
+            <select id="gonderTipSelect">
+              <option value="makbuz">Makbuz (görsel)</option>
+              <option value="tahakkuk">Tahakkuk PDF</option>
+            </select>
+            <input type="radio" name="whatsappTip" id="tipMakbuz" value="makbuz" checked style="display:none" />
+            <input type="radio" name="whatsappTip" id="tipTahakkuk" value="tahakkuk" style="display:none" />
+          </div>
+          <div>
+            <label class="field">Dönem</label>
+            <div style="display:flex;gap:6px">
+              <select id="cekAy" style="flex:1"></select>
+              <select id="cekYil" style="width:96px"></select>
+            </div>
+          </div>
+          <div>
+            <label class="field">Makbuz etiketi</label>
+            <input id="donemEtiket" type="text" placeholder="örnek: Haziran 2026" />
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button type="button" class="btn btn-blu" id="hepsiniSecBtn">Tümünü Seç</button>
+          <button type="button" class="btn btn-ghost" id="secimiTemizleBtn">Seçimi Temizle</button>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txD);margin-left:auto">
+            <input type="checkbox" id="ivdCek" style="width:auto" /> IVD de dene
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txD)">
+            <input type="checkbox" id="sgkCekSorguda" style="width:auto" checked /> Sorguda SGK çek
+          </label>
+        </div>
+        <p class="hint" id="cekOzet" style="margin-top:10px">Seçili mükellefler için sorgula, sonra WhatsApp ile gönder.</p>
+      </div>
+
+      <div class="action-strip">
+        <button type="button" class="btn-pill btn-pill-sorgula" id="getirBtn">Sorgula</button>
+        <button type="button" class="btn-pill btn-pill-ghost" id="cekHepsiBtn">Tümünü Sorgula</button>
+        <button type="button" class="btn-pill btn-pill-excel" id="islemExcelBtn">Excel</button>
+        <button type="button" class="btn-pill btn-pill-indir" id="islemIndirBtn">İndir</button>
+        <button type="button" class="btn-pill btn-pill-wa" id="secilileriGonderBtn">WhatsApp</button>
+        <button type="button" class="btn-pill btn-pill-ghost" id="topluGonderBtn">Toplu Gönder</button>
+        <button type="button" id="cekBtn" style="display:none">Seciliyi Yenile</button>
+        <button type="button" id="duzenleBtn" style="display:none"></button>
+        <button type="button" id="whatsappBtn" style="display:none"></button>
+      </div>
+
+      <div class="results-card">
+        <div class="results-head">
+          <h3>Sonuç listesi</h3>
+          <div class="hint" id="listeOzetHint">—</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" id="hepsiniSec" style="width:auto" title="Hepsini sec" /></th>
+                <th>Mukellef</th><th>VKN</th><th>Tel</th><th>Durum</th>
+                <th class="right">Toplam</th>
+                <th style="width:170px"></th>
+              </tr>
+            </thead>
+            <tbody id="bellekOzetBody">
+              <tr><td colspan="7" style="color:var(--txD)">Liste burada — satırdan Sorgula veya yukarıdan seçip Sorgula</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="log" id="log"></div>
+
+      <!-- Detay: isme tiklayinca acilir (duzenlenebilir kalemler). Onizleme = WP makbuz gorseli -->
+      <div id="onizlemeHold" style="display:none">
+        <div id="onizlemePanel" class="subcard" style="margin:0;background:var(--bg)">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <div class="card-title" style="margin:0" id="detayBaslik">Kalemler</div>
+              <div id="bellekDurum" class="hint" style="margin:4px 0 0">—</div>
+              <span id="metinLabel" style="display:none"></span>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-ghost" id="kalemSatirEkleBtn">+ Satir</button>
+              <button type="button" class="btn btn-gold" id="kalemKaydetBtn">Kaydet</button>
+              <button type="button" class="btn btn-blu" id="makbuzOnizleBtn">Onizleme (WP gorsel)</button>
+              <button type="button" class="btn btn-ghost" id="onizlemeKapatBtn">Kapat</button>
+            </div>
+          </div>
+          <div class="table-wrap" id="kalemDuzenWrap">
+            <table>
+              <thead>
+                <tr><th>Kaynak</th><th>Kalem</th><th>Donem</th><th class="right">Tutar</th><th style="width:40px"></th></tr>
+              </thead>
+              <tbody id="kalemBody"></tbody>
+            </table>
+          </div>
+          <div class="makbuz-wrap" id="makbuzWrap" style="margin-top:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="hint" style="margin:0">WhatsApp'a gidecek makbuz gorseli</div>
+              <div class="actions">
+                <button type="button" class="btn btn-blu" id="makbuzDuzenleAltBtn">Makbuzu Duzenle</button>
+                <button type="button" class="btn btn-ghost" id="makbuzSatirEkleBtn" style="display:none">+ Satir</button>
+                <button type="button" class="btn btn-gold" id="makbuzUygulaBtn" style="display:none">Uygula</button>
+                <button type="button" class="btn btn-grn" id="makbuzWpGonderBtn">WP Gonder</button>
+                <button type="button" class="btn btn-ghost" id="makbuzYazdirBtn">Yazdir</button>
+              </div>
+            </div>
+            <div class="makbuz-card" id="makbuzCard">
+              <div class="makbuz-head">
+                <h2>MUHASEBE ÖDEME BİLDİRİM MAKBUZU</h2>
+                <div class="makbuz-tarih"><span>TARİH</span><strong id="mbTarih">—</strong></div>
+              </div>
+              <div class="makbuz-musteri"><span>MÜŞTERİ</span><strong id="mbMusteri">—</strong></div>
+              <table class="makbuz-table">
+                <thead><tr><th>DÖNEM</th><th>AÇIKLAMA</th><th>TUTAR (₺)</th></tr></thead>
+                <tbody id="mbBody"></tbody>
+              </table>
+              <div class="makbuz-toplam"><span>TOPLAM</span><strong id="mbToplam">0,00 ₺</strong></div>
+              <div class="makbuz-yalniz"><span>YALNIZ:</span><strong id="mbYalniz">—</strong></div>
+            </div>
+          </div>
+          <textarea id="metin" readonly placeholder="Tahakkuk PDF listesi" style="display:none"></textarea>
+        </div>
+      </div>
+      <div id="fisGosterPanel" style="display:none">
+        <div id="fisGosterOzet"></div><div id="fisGosterList"></div>
+        <button type="button" id="fisGonderGecBtn" style="display:none"></button>
+        <button type="button" id="fisGosterKapatBtn" style="display:none"></button>
+        <button type="button" id="gosterBtn" style="display:none"></button>
+      </div>
+    </div>
+
+    <!-- MUKELLEFLER -->
+    <div class="panel" id="panel-mukellef">
+      <section class="card">
+        <div class="toolbar">
+          <div>
+            <div class="card-title" style="margin-bottom:4px">Mukellef listesi</div>
+            <p class="hint" style="margin:0">Ekle / duzenle / Excel. Gonderim Islem sekmesinden.</p>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" id="excelSablonBtn">Sablon Indir</button>
+            <button type="button" class="btn btn-blu" id="excelAktarBtn">Excel'den Aktar</button>
+            <button type="button" class="btn btn-ghost" id="excelDisariBtn">Excel'e Aktar</button>
+          </div>
+        </div>
+        <div class="row row-2">
+          <div>
+            <label class="field">Mukellef sec</label>
+            <select id="profilSec"></select>
+          </div>
+          <div class="actions" style="align-items:flex-end">
+            <button type="button" class="btn btn-ghost" id="yeniBtn">Yeni</button>
+            <button type="button" class="btn btn-danger" id="silBtn">Sil</button>
+            <button type="button" class="btn btn-gold" id="kaydetBtn">Kaydet</button>
+          </div>
+        </div>
+        <div class="row row-2">
+          <div>
+            <label class="field">Unvan</label>
+            <input id="ad" type="text" placeholder="Firma / kisi unvani" />
+          </div>
+          <div>
+            <label class="field">VKN / TCKN</label>
+            <input id="vkn" type="text" placeholder="ornek: 2512345678" />
+          </div>
+        </div>
+        <div class="row row-2">
+          <div>
+            <label class="field">WhatsApp Telefon</label>
+            <input id="telefon" type="text" placeholder="05xx xxx xx xx" />
+          </div>
+          <div>
+            <label class="field">Muhasebe Ucreti (TL)</label>
+            <div style="display:flex;gap:6px">
+              <input id="muhasebeUcreti" type="text" placeholder="ornek: 10500" style="flex:1" />
+              <input id="muhasebeDonem" type="text" readonly placeholder="otomatik" style="width:100px;opacity:.85" />
+            </div>
+          </div>
+        </div>
+        <details class="adv" style="margin-top:12px">
+          <summary>Manuel vergi / SGK (opsiyonel)</summary>
+          <div style="margin-top:10px">
+            <label class="field">Manuel vergi kalemleri</label>
+            <div id="vergiManuelList"></div>
+            <div class="actions" style="margin-top:8px">
+              <button type="button" class="btn btn-ghost" id="vergiSatirEkle">+ Vergi satiri</button>
+            </div>
+          </div>
+          <div class="row row-2" style="margin-top:12px">
+            <div><label class="field">SGK Kullanici Adi (Merkez)</label><input id="sgkKullanici" type="text" placeholder="ornek: 25447811248" /></div>
+            <div><label class="field">SGK Kullanici Kodu (Merkez)</label><input id="sgkKullaniciKodu" type="text" placeholder="yanindaki kisa kod" /></div>
+          </div>
+          <div class="row row-2">
+            <div><label class="field">Sistem Sifre (Merkez)</label><input id="sgkSistemSifre" type="password" /></div>
+            <div><label class="field">Isyeri Sifre (Merkez)</label><input id="sgkIsyeriSifre" type="password" /></div>
+          </div>
+          <div class="row row-2">
+            <div><label class="field">Şube Kullanici Adi</label><input id="sgkSubeKullanici" type="text" placeholder="şube kullanici adi" /></div>
+            <div><label class="field">Şube Kullanici Kodu</label><input id="sgkSubeKullaniciKodu" type="text" placeholder="şube kullanici kodu" /></div>
+          </div>
+          <div class="row row-2">
+            <div><label class="field">Şube Sistem Sifre</label><input id="sgkSubeSistemSifre" type="password" /></div>
+            <div><label class="field">Şube Isyeri Sifre</label><input id="sgkSubeSifre" type="password" placeholder="şube işyeri şifresi" /></div>
+          </div>
+          <div class="row row-2">
+            <div><label class="field">Şube Adi (makbuzda)</label><input id="sgkSubeAdi" type="text" placeholder="ornek: Merkez / Fabrika / Sube-2" /></div>
+            <div></div>
+          </div>
+          <div class="row row-2">
+            <div><label class="field">SGK Manuel Tutar (TL)</label><input id="sgkManuelTutar" type="text" /></div>
+            <div><label class="field">SGK Donem</label><input id="sgkManuelDonem" type="text" /></div>
+          </div>
+          <p class="hint" style="margin:8px 0 0">
+            Merkez ve şube bilgileri doluysa ikisi de sırayla sorgulanır (her biri için ayrı captcha).
+            Sadece biri doluysa o sorgulanır. Captcha + Giris sen; program İŞVEREN → CARİ DÖNEM BORÇ BİLGİSİ tiklar.
+          </p>
+          <div class="actions">
+            <button type="button" class="btn btn-gold" id="sgkCariCekBtn">SGK Cari Borc Cek</button>
+            <button type="button" class="btn btn-ghost" id="sgkBorcBtn">SGK Borc Sorgu Ac</button>
+            <button type="button" class="btn btn-ghost" id="sgkIsverenBtn">Isveren Sistemi Ac</button>
+          </div>
+          <p class="hint" style="margin-top:10px">Toplu sorguda SGK çekmek için İşlem sekmesindeki “Sorguda SGK çek” kutusunu kullan.</p>
+          <details class="adv">
+            <summary>IVD (nadiren)</summary>
+            <div class="row row-2">
+              <div><label class="field">IVD Kullanici</label><input id="ivdKullanici" type="text" autocomplete="off" /></div>
+              <div><label class="field">IVD Sifre</label><input id="ivdSifre" type="password" autocomplete="new-password" /></div>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-ghost" id="testIvdBtn">IVD Test</button>
+              <button type="button" class="btn btn-ghost" id="ivdPortalBtn">IVD Ac</button>
+            </div>
+          </details>
+        </details>
+      </section>
+    </div>
+
+    <!-- AYARLAR -->
+    <div class="panel" id="panel-ayarlar">
+      <section class="card">
+        <div class="card-title">Ayarlar</div>
+
+        <div class="subcard">
+          <h3>Ofis e-Beyanname</h3>
+          <p class="hint" style="margin-top:-4px;margin-bottom:12px">Bir kez kaydedilir; tum mukellefler icin ortak.</p>
+          <div class="row row-3">
+            <div>
+              <label class="field">Kullanici Kodu</label>
+              <input id="ebynKullanici" type="text" placeholder="8 hane" autocomplete="off" />
+            </div>
+            <div>
+              <label class="field">Parola</label>
+              <input id="ebynParola" type="password" autocomplete="new-password" />
+            </div>
+            <div>
+              <label class="field">Sifre</label>
+              <input id="ebynSifre" type="password" autocomplete="new-password" />
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" id="testEbynBtn">Giris Test</button>
+            <button type="button" class="btn btn-ghost" id="ebynPortalBtn">e-Beyanname Ac</button>
+            <button type="button" class="btn btn-gold" id="ofisKaydetBtn">Kaydet</button>
+          </div>
+        </div>
+
+        <div class="subcard">
+          <h3>Ortak indirme klasoru</h3>
+          <p class="hint" style="margin-top:-4px;margin-bottom:12px">Bir kez secilir; tum mukelleflerin PDF / makbuzlari ayni klasore iner.</p>
+          <div class="actions" style="margin-bottom:8px">
+            <button type="button" class="btn btn-blu" id="fisKlasorSecBtn">Klasor Sec</button>
+            <button type="button" class="btn btn-ghost" id="fisKlasorBtn">Klasoru Ac</button>
+          </div>
+          <p class="hint" id="fisKlasorYol" style="margin:0;word-break:break-all">Henuz secilmedi — varsayilan: Belgeler\\Musavirim\\Tahakkuk\\fisler</p>
+        </div>
+
+        <div class="subcard">
+          <h3>WhatsApp baglantisi</h3>
+          <p class="hint" style="margin-top:-4px;margin-bottom:12px">Program acilinca otomatik baglanir. Ilk seferde veya oturum dustuyse karekodu okut.</p>
+          <div class="row row-2">
+            <div>
+              <div id="waDurum" class="hint" style="margin-bottom:10px">Durum: kapali</div>
+              <div class="actions">
+                <button type="button" class="btn btn-gold" id="waBaglanBtn">Karekod / Baglan</button>
+                <button type="button" class="btn btn-ghost" id="waCikisBtn">Oturumu Kapat</button>
+              </div>
+              <p class="hint" style="margin-top:10px">WhatsApp → Bagli Cihazlar → Cihaz Bagla</p>
+            </div>
+            <div id="waQrKutu" style="text-align:center;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);border:1px dashed var(--bd);border-radius:10px;padding:12px">
+              <img id="waQr" alt="WhatsApp QR" style="display:none;width:220px;height:220px;background:#fff;border-radius:10px;padding:10px" />
+              <div id="waQrYok" class="hint">Baglan'a bas → karekod burada</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="sgkCaptchaModal" class="sgk-captcha-modal" hidden>
+    <div class="sgk-captcha-card">
+      <h3>SGK Güvenlik Kodu</h3>
+      <p class="hint" style="margin-bottom:12px">Sayfalar arka planda; sadece kodu yaz.</p>
+      <div class="sgk-captcha-img-wrap">
+        <img id="sgkCaptchaImg" alt="Captcha" />
+      </div>
+      <label class="field" for="sgkCaptchaInput">Kod</label>
+      <input id="sgkCaptchaInput" type="text" autocomplete="off" spellcheck="false" placeholder="Güvenlik kodu" />
+      <div class="actions" style="margin-top:14px">
+        <button type="button" class="btn btn-gold" id="sgkCaptchaOkBtn">Giriş Yap</button>
+        <button type="button" class="btn btn-ghost" id="sgkCaptchaYenileBtn">Yenile</button>
+        <button type="button" class="btn btn-danger" id="sgkCaptchaIptalBtn">İptal</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = {
+  mukellefler: [],
+  aktifId: null,
+  ofis: { ebynKullanici: '', ebynParola: '', ebynSifre: '' },
+  sgkUrl: {},
+  ivdUrl: 'https://ivd.gib.gov.tr',
+  ebynUrl: 'https://ebeyanname.gib.gov.tr',
+  sonMetin: '',
+  sonKalemler: [],
+  sonMakbuz: null,
+  sonPdfDosyalari: [],
+  bellek: { donem: null, zaman: null, sonuclar: {} },
+  vergiManuel: [],
+  makbuzDuzenleniyor: false,
+  seciliPdfYollari: null,
+  fisGosterPaths: [],
+  onizlemeAcik: false,       // isme tiklayinca detay (kalem tablosu)
+  makbuzOnizlemeAcik: false, // WP makbuz gorseli
+};
+
+function seciliWhatsappTip() {
+  return $('tipTahakkuk').checked ? 'tahakkuk' : 'makbuz';
+}
+
+function setWhatsappTip(tip) {
+  if (tip === 'tahakkuk') {
+    $('tipTahakkuk').checked = true;
+  } else {
+    $('tipMakbuz').checked = true;
+  }
+  const sel = $('gonderTipSelect');
+  if (sel) sel.value = tip === 'tahakkuk' ? 'tahakkuk' : 'makbuz';
+  updateMetinLabel();
+}
+
+function uygulaMukellefAra() {
+  const q = String($('mukellefAra')?.value || '').trim().toLowerCase();
+  const rows = $('bellekOzetBody')?.querySelectorAll('tr[data-bid]') || [];
+  let gorunen = 0;
+  rows.forEach((tr) => {
+    const ad = (tr.querySelector('.m-ad')?.textContent || '').toLowerCase();
+    const vkn = (tr.children[2]?.textContent || '').toLowerCase();
+    const ok = !q || ad.includes(q) || vkn.includes(q);
+    tr.style.display = ok ? '' : 'none';
+    if (ok) gorunen += 1;
+  });
+  const hint = $('listeOzetHint');
+  if (hint) {
+    hint.textContent = q
+      ? `${gorunen} / ${state.mukellefler.length} mükellef`
+      : `${state.mukellefler.length} mükellef`;
+  }
+}
+
+function normalizeTelefonWa(tel) {
+  let d = String(tel || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.length === 11 && d.startsWith('0')) d = `90${d.slice(1)}`;
+  if (d.length === 10 && d.startsWith('5')) d = `90${d}`;
+  return d;
+}
+
+function whatsappUrl(telefon, metin) {
+  const phone = normalizeTelefonWa(telefon);
+  const text = encodeURIComponent(String(metin || ''));
+  if (phone) return `https://wa.me/${phone}?text=${text}`;
+  return `https://wa.me/?text=${text}`;
+}
+
+function updateMetinLabel() {
+  const tip = seciliWhatsappTip() === 'tahakkuk' ? 'Tahakkuk' : 'Makbuz';
+  $('metinLabel').textContent = tip === 'Makbuz'
+    ? 'Muhasebe odeme bildirim makbuzu (goruntu)'
+    : 'Tahakkuk: resmi PDF dosyalari gonderilir';
+  const isMakbuz = tip === 'Makbuz';
+  const has = (state.sonKalemler || []).length > 0
+    || Number(String($('muhasebeUcreti').value || '').replace(/\./g, '').replace(',', '.')) > 0;
+  $('makbuzWrap').classList.toggle('show', isMakbuz && has && !!state.sonMakbuz);
+  $('metin').style.display = isMakbuz ? 'none' : 'block';
+  $('duzenleBtn').style.display = isMakbuz ? '' : 'none';
+  $('duzenleBtn').textContent = state.makbuzDuzenleniyor ? 'Uygula' : 'Duzenle';
+  $('whatsappBtn').textContent = isMakbuz ? 'WhatsApp (Goruntu)' : 'WhatsApp (PDF)';
+}
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderMakbuzKart(makbuz) {
+  if (!makbuz) {
+    $('makbuzWrap').classList.remove('show');
+    return;
+  }
+  const edit = state.makbuzDuzenleniyor;
+  $('mbTarih').innerHTML = edit
+    ? `<input id="mbTarihInput" type="text" value="${escHtml(makbuz.tarih || '')}" style="width:110px;padding:4px 6px;font-size:13px;background:#fff;color:#1a2a3a;border:1px solid #c5d0dc" />`
+    : escHtml(makbuz.tarih || '—');
+  $('mbMusteri').innerHTML = edit
+    ? `<input id="mbMusteriInput" type="text" value="${escHtml(makbuz.musteri || '')}" style="width:100%;padding:4px 6px;font-size:16px;font-weight:800;background:#fff;color:#1a3d5d;border:1px solid #c5d0dc" />`
+    : escHtml(makbuz.musteri || '—');
+  $('mbToplam').textContent = makbuz.toplamFormat || '0,00 ₺';
+  $('mbYalniz').textContent = makbuz.toplamYazi || '—';
+  const body = $('mbBody');
+  const satirlar = makbuz.satirlar || [];
+  if (!satirlar.length && !edit) {
+    body.innerHTML = '<tr><td colspan="3" style="color:#7a8fa3">Kalem yok</td></tr>';
+  } else if (edit) {
+    const rows = satirlar.length ? satirlar : [{ donem: '', aciklama: '', tutar: '' }];
+    body.innerHTML = rows.map((k, i) => `
+      <tr data-mi="${i}">
+        <td><input data-f="donem" value="${escHtml(k.donem || '')}" style="width:90px;padding:4px;background:#fff;color:#1a2a3a;border:1px solid #c5d0dc;font-size:12px" /></td>
+        <td><input data-f="aciklama" value="${escHtml(k.aciklama || '')}" style="width:100%;padding:4px;background:#fff;color:#1a2a3a;border:1px solid #c5d0dc;font-size:12px" /></td>
+        <td style="display:flex;gap:4px;justify-content:flex-end;align-items:center">
+          <input data-f="tutar" value="${escHtml(k.tutar != null && k.tutar !== '' ? Number(k.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '')}" style="width:110px;padding:4px;text-align:right;background:#fff;color:#1a2a3a;border:1px solid #c5d0dc;font-size:12px" />
+          <button type="button" class="btn btn-danger" data-mdel="${i}" style="padding:4px 8px">X</button>
+        </td>
+      </tr>
+    `).join('');
+  } else {
+    body.innerHTML = satirlar.map((k) => `
+      <tr>
+        <td>${escHtml(k.donem || '—')}</td>
+        <td>${escHtml(k.aciklama || '')}</td>
+        <td>${Number(k.tutar || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
+      </tr>
+    `).join('');
+  }
+  $('makbuzSatirEkleBtn').style.display = edit ? '' : 'none';
+  $('makbuzUygulaBtn').style.display = edit ? '' : 'none';
+  $('makbuzDuzenleAltBtn').textContent = edit ? 'Iptal' : 'Duzenle';
+  $('duzenleBtn').textContent = edit ? 'Uygula' : 'Duzenle';
+  $('duzenleBtn').disabled = !makbuz && !edit;
+  if (seciliWhatsappTip() === 'makbuz') {
+    $('makbuzWrap').classList.add('show');
+    $('metin').style.display = 'none';
+  }
+}
+
+function okuMakbuzFormundan() {
+  const satirlar = [];
+  $('mbBody').querySelectorAll('tr[data-mi]').forEach((row) => {
+    satirlar.push({
+      donem: row.querySelector('[data-f="donem"]')?.value.trim() || '',
+      aciklama: row.querySelector('[data-f="aciklama"]')?.value.trim() || '',
+      tutar: row.querySelector('[data-f="tutar"]')?.value.trim() || '',
+    });
+  });
+  return {
+    musteri: $('mbMusteriInput')?.value.trim() || state.sonMakbuz?.musteri || $('ad').value.trim(),
+    tarih: $('mbTarihInput')?.value.trim() || state.sonMakbuz?.tarih || '',
+    satirlar,
+  };
+}
+
+async function makbuzUygula() {
+  const form = okuMakbuzFormundan();
+  const r = await api().makbuzHesapla(form);
+  if (!r.ok) {
+    showMsg(r.msg || 'Makbuz hesaplanamadi', 'hata');
+    return false;
+  }
+  state.sonMakbuz = r.makbuz;
+  state.makbuzDuzenleniyor = false;
+  // Kalem tablosunu da senkron tut
+  state.sonKalemler = (r.makbuz.satirlar || []).map((k) => ({
+    ad: k.aciklama,
+    donem: k.donem,
+    tutar: k.tutar,
+    kaynak: 'manuel',
+  }));
+  renderKalemler(state.sonKalemler);
+  renderMakbuzKart(state.sonMakbuz);
+  $('whatsappBtn').disabled = !(state.sonMakbuz?.satirlar || []).length;
+  $('duzenleBtn').disabled = false;
+  showMsg('Makbuz guncellendi.', 'ok');
+  return true;
+}
+
+function makbuzDuzenleAc() {
+  if (!state.sonMakbuz) {
+    showMsg('Once makbuz olussun (sorgula).', 'hata');
+    return;
+  }
+  state.makbuzDuzenleniyor = true;
+  renderMakbuzKart(state.sonMakbuz);
+  showMsg('Makbuzu duzenle — bitince Uygula.', 'info');
+}
+
+function makbuzDuzenleIptal() {
+  state.makbuzDuzenleniyor = false;
+  if (state.sonMakbuz) renderMakbuzKart(state.sonMakbuz);
+}
+
+function cekimSonucunuTemizle() {
+  state.sonKalemler = [];
+  state.sonMetin = '';
+  state.sonMakbuz = null;
+  state.sonPdfDosyalari = [];
+  state.makbuzDuzenleniyor = false;
+  state.seciliPdfYollari = null;
+  $('metin').value = '';
+  $('duzenleBtn').disabled = true;
+  $('whatsappBtn').disabled = true;
+  $('kalemBody').innerHTML = '<tr><td colspan="4" class="c-dim" style="color:var(--txD)">Once tumunu sorgula veya seciliyi yenile</td></tr>';
+  $('makbuzWrap').classList.remove('show');
+}
+
+function muhasebeDonemHesapla() {
+  let a = Number($('cekAy').value) || 1;
+  let y = Number($('cekYil').value) || new Date().getFullYear();
+  a += 1;
+  if (a > 12) {
+    a = 1;
+    y += 1;
+  }
+  return `${String(a).padStart(2, '0')}/${y}`;
+}
+
+function syncMuhasebeDonemAlani() {
+  $('muhasebeDonem').value = muhasebeDonemHesapla();
+}
+
+function kalemlerGosterimIcin() {
+  const list = [...(state.sonKalemler || [])].filter((k) => (Number(k.tutar) || 0) > 0);
+  const ucret = Number(String($('muhasebeUcreti').value || '').replace(/\./g, '').replace(',', '.'));
+  if (Number.isFinite(ucret) && ucret > 0) {
+    const muhDonem = muhasebeDonemHesapla();
+    const idx = list.findIndex((k) => /muhasebe/i.test(String(k.ad || '')) || k.kaynak === 'muhasebe');
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ad: 'Muhasebe Ücreti', donem: muhDonem, tutar: ucret, kaynak: 'muhasebe', manuel: true };
+    } else {
+      list.unshift({
+        kaynak: 'muhasebe',
+        ad: 'Muhasebe Ücreti',
+        donem: muhDonem,
+        tutar: ucret,
+        manuel: true,
+      });
+    }
+  }
+  return list;
+}
+
+async function metniYenile() {
+  if (state.makbuzDuzenleniyor) return;
+  const kalemler = kalemlerGosterimIcin();
+  if (!kalemler.length && !(state.sonKalemler || []).length) {
+    $('metin').value = '';
+    state.sonMetin = '';
+    state.sonMakbuz = null;
+    $('duzenleBtn').disabled = true;
+    $('whatsappBtn').disabled = true;
+    $('makbuzWrap').classList.remove('show');
+    updateMetinLabel();
+    return;
+  }
+  const tip = seciliWhatsappTip();
+  if (tip === 'tahakkuk') {
+    const pdfs = state.seciliPdfYollari || state.sonPdfDosyalari || [];
+    state.sonMetin = '';
+    state.sonMakbuz = null;
+    $('metin').value = pdfs.length
+      ? `Gonderilecek resmi tahakkuk PDF'leri (${pdfs.length}):\n` + pdfs.map((p) => `- ${String(p).split(/[/\\\\]/).pop()}`).join('\n')
+      : 'PDF yok — once sorgula (e-Beyanname tahakkuk fisi indirir).';
+    $('makbuzWrap').classList.remove('show');
+    $('metin').style.display = 'block';
+    const has = pdfs.length > 0;
+    $('duzenleBtn').disabled = true;
+    $('whatsappBtn').disabled = !has;
+    updateMetinLabel();
+    return;
+  }
+  const r = await api().metin({
+    tip,
+    firmaAdi: $('ad').value.trim(),
+    vkn: $('vkn').value.trim(),
+    donemEtiket: $('donemEtiket').value.trim(),
+    kalemler: kalemler.length ? kalemler : state.sonKalemler,
+  });
+  if (!r.ok) return;
+  state.sonMetin = r.metin || '';
+  state.sonMakbuz = r.makbuz || null;
+  $('metin').value = state.sonMetin;
+  const has = !!state.sonMakbuz;
+  $('duzenleBtn').disabled = !has;
+  $('whatsappBtn').disabled = !has;
+  if (r.makbuz) renderMakbuzKart(r.makbuz);
+  else {
+    $('makbuzWrap').classList.remove('show');
+    $('metin').style.display = 'block';
+  }
+  updateMetinLabel();
+}
+
+function bellekKaydi(id) {
+  return (state.bellek.sonuclar || {})[id] || null;
+}
+
+function aktifBellektenYukle() {
+  const id = state.aktifId;
+  const kayit = bellekKaydi(id);
+  if (!kayit) {
+    cekimSonucunuTemizle();
+    $('bellekDurum').textContent = 'Bu mukellef icin bellekte sonuc yok — once Tumunu Sorgula';
+    return;
+  }
+  const { yil, ay } = seciliDonem();
+  const donemKayit = mukellefDonemKaydi(kayit, yil, ay);
+  const kaynak = donemKayit || kayit;
+  state.sonKalemler = (kaynak.kalemler || []).filter((k) => (Number(k.tutar) || 0) > 0);
+  const pdfs = (kaynak.pdfDosyalari || []).map((p) => pdfKayitNorm(p)).filter(Boolean);
+  state.sonPdfDosyalari = pdfs.map((p) => p.path);
+  if (!state.seciliPdfYollari) {
+    /* tum PDF'ler */
+  } else {
+    const set = new Set(state.sonPdfDosyalari);
+    if (!state.seciliPdfYollari.every((p) => set.has(p))) {
+      state.seciliPdfYollari = null;
+    }
+  }
+  renderKalemler(state.sonKalemler);
+  const n = state.sonKalemler.length;
+  const tutar = state.sonKalemler.reduce((s, k) => s + (Number(k.tutar) || 0), 0);
+  const pdfN = (state.seciliPdfYollari || state.sonPdfDosyalari || []).length;
+  const key = donemAnahtarUi(yil, ay);
+  $('bellekDurum').textContent = donemKayit
+    ? `${key}: ${n} kalem · ${formatTl(tutar)} TL · ${pdfN} PDF` + (kaynak.ok === false ? ' (hata var)' : '')
+    : `${n} kalem · ${formatTl(tutar)} TL · ${pdfN} PDF (donem filtresi yok / eski kayit)`;
+  const logs = (kaynak.loglar || kayit.loglar || []).map((l) => `[${l.tip}] ${l.mesaj}`).join('\n');
+  if (logs) $('log').textContent = logs;
+  metniYenile().catch(() => {});
+}
+
+function normalizeDonemUi(d) {
+  let raw = String(d || '').trim();
+  if (!raw) return '';
+  const AY_MAP = {
+    ocak: 1, subat: 2, mart: 3, nisan: 4, mayis: 5, haziran: 6,
+    temmuz: 7, agustos: 8, eylul: 9, ekim: 10, kasim: 11, aralik: 12,
+  };
+  const ayAd = raw.match(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*[\/\-\s]\s*(\d{4})$/i)
+    || raw.match(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+(\d{4})$/i);
+  if (ayAd) {
+    const key = ayAd[1].toLocaleLowerCase('tr-TR')
+      .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+      .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
+    const ayNo = AY_MAP[key];
+    if (ayNo) return `${String(ayNo).padStart(2, '0')}/${ayAd[2]}`;
+  }
+  let s = raw.replace(/\s+/g, '');
+  const same = s.match(/^(\d{1,2}\/\d{4})[-–—]\1$/i);
+  if (same) {
+    const [aa, yy] = same[1].split('/');
+    return `${String(aa).padStart(2, '0')}/${yy}`;
+  }
+  const m = s.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m) return `${String(m[1]).padStart(2, '0')}/${m[2]}`;
+  const parts = s.split(/[-–—]/);
+  if (parts.length === 2 && parts[0] === parts[1]) {
+    const p = parts[0].match(/(\d{1,2})\/(\d{4})/);
+    if (p) return `${String(p[1]).padStart(2, '0')}/${p[2]}`;
+  }
+  const embedded = raw.match(/(\d{1,2})\s*\/\s*(\d{4})/);
+  if (embedded) return `${String(embedded[1]).padStart(2, '0')}/${embedded[2]}`;
+  return raw;
+}
+
+function parkOnizleme() {
+  const panel = $('onizlemePanel');
+  const hold = $('onizlemeHold');
+  if (panel && hold && panel.parentElement !== hold) hold.appendChild(panel);
+  const eski = document.getElementById('onizlemeSatir');
+  if (eski) eski.remove();
+}
+
+function yerlestirOnizleme() {
+  parkOnizleme();
+  if (!state.onizlemeAcik || !state.aktifId) return;
+  const tr = $('bellekOzetBody').querySelector(`tr[data-bid="${CSS.escape(state.aktifId)}"]`)
+    || $('bellekOzetBody').querySelector(`tr[data-bid="${state.aktifId}"]`);
+  if (!tr) return;
+  const detail = document.createElement('tr');
+  detail.id = 'onizlemeSatir';
+  const td = document.createElement('td');
+  td.colSpan = 7;
+  td.style.cssText = 'padding:12px;background:rgba(212,168,67,.07);border-bottom:1px solid var(--bd)';
+  td.appendChild($('onizlemePanel'));
+  detail.appendChild(td);
+  tr.insertAdjacentElement('afterend', detail);
+  // Kalem tablosu acik; makbuz gorseli sadece Onizleme ile
+  $('kalemDuzenWrap').style.display = '';
+  $('makbuzWrap').classList.toggle('show', !!state.makbuzOnizlemeAcik);
+  try {
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (_) { /* ignore */ }
+}
+
+function renderBellekOzet() {
+  parkOnizleme();
+  const body = $('bellekOzetBody');
+  const sonuclar = state.bellek.sonuclar || {};
+  const { yil, ay } = seciliDonem();
+  if (!state.mukellefler.length) {
+    body.innerHTML = '<tr><td colspan="7" style="color:var(--txD)">Once Mukellefler sekmesinden musteri ekle</td></tr>';
+    return;
+  }
+  // Secili checkbox'lari koru
+  const oncekiSecili = new Set(seciliMukellefIdleri());
+  const rows = [];
+  for (const m of state.mukellefler) {
+    const raw = sonuclar[m.id];
+    const k = raw ? mukellefDonemKaydi(raw, yil, ay) : null;
+    const kalemler = k ? (k.kalemler || []).filter((x) => (Number(x.tutar) || 0) > 0) : [];
+    const tutar = kalemler.reduce((s, x) => s + (Number(x.tutar) || 0), 0);
+    const pdfN = k ? (k.pdfDosyalari || []).length : 0;
+    let durum = '—';
+    if (k) durum = k.ok === false ? 'Hata' : (pdfN ? `Hazir · ${pdfN} PDF` : 'Hazir');
+    const checked = oncekiSecili.has(m.id) || (state.onizlemeAcik && m.id === state.aktifId) ? 'checked' : '';
+    const aktifBg = m.id === state.aktifId && state.onizlemeAcik ? 'background:rgba(212,168,67,.12)' : '';
+    rows.push(`
+      <tr data-bid="${m.id}" style="${aktifBg}">
+        <td><input type="checkbox" class="m-sec" data-mid="${escHtml(m.id)}" ${checked} style="width:auto" /></td>
+        <td class="m-ad" data-mid="${escHtml(m.id)}" style="cursor:pointer;font-weight:600;color:var(--gold)">${escHtml(m.ad || '')}</td>
+        <td>${escHtml(m.vkn || '')}</td>
+        <td>${escHtml(m.telefon || '')}</td>
+        <td>${durum}</td>
+        <td class="right">${kalemler.length ? formatTl(tutar) : '—'}</td>
+        <td style="white-space:nowrap">
+          <button type="button" class="btn btn-gold btn-getir" data-mid="${escHtml(m.id)}" style="padding:6px 10px;font-size:12px" title="Bu mukellefi sorgula">Sorgula</button>
+          <button type="button" class="btn btn-blu btn-onizleme" data-mid="${escHtml(m.id)}" style="padding:6px 10px;font-size:12px" title="WhatsApp makbuz gorseli">Onizleme</button>
+        </td>
+      </tr>
+    `);
+  }
+  body.innerHTML = rows.join('');
+  const hepsi = $('hepsiniSec');
+  if (hepsi) hepsi.checked = false;
+  const hint = $('listeOzetHint');
+  if (hint) hint.textContent = `${state.mukellefler.length} mükellef`;
+  yerlestirOnizleme();
+  uygulaMukellefAra();
+}
+
+function api() {
+  if (!window.tahakkukApp) {
+    throw new Error('Tahakkuk API yuklenmedi. Uygulamayi proje klasorunden npm start ile yeniden ac.');
+  }
+  return window.tahakkukApp;
+}
+
+function showMsg(text, tip) {
+  const el = $('msg');
+  el.textContent = text;
+  el.className = 'msg show ' + (tip === 'hata' ? 'err' : tip === 'ok' ? 'ok' : 'info');
+}
+
+function emptyMukellef() {
+  return {
+    id: 'm-' + Date.now(),
+    ad: 'Yeni Mukellef',
+    vkn: '',
+    telefon: '',
+    whatsappTip: 'makbuz',
+    muhasebeUcreti: '',
+    muhasebeDonem: '',
+    ivdKullanici: '',
+    ivdSifre: '',
+    sgkKullanici: '',
+    sgkKullaniciKodu: '',
+    sgkSistemSifre: '',
+    sgkIsyeriSifre: '',
+    sgkSubeKullanici: '',
+    sgkSubeKullaniciKodu: '',
+    sgkSubeSistemSifre: '',
+    sgkSubeSifre: '',
+    sgkSubeAdi: '',
+    sgkManuelTutar: '',
+    sgkManuelDonem: '',
+    vergiManuel: [{ ad: 'KDV', tutar: '', donem: '' }],
+  };
+}
+
+function ofisOku() {
+  return {
+    ebynKullanici: $('ebynKullanici').value.trim(),
+    ebynParola: $('ebynParola').value,
+    ebynSifre: $('ebynSifre').value,
+    fisKlasor: state.fisKlasor || state.ofis?.fisKlasor || '',
+  };
+}
+
+function ofisYaz(o) {
+  const x = o || {};
+  $('ebynKullanici').value = x.ebynKullanici || '';
+  $('ebynParola').value = x.ebynParola || '';
+  $('ebynSifre').value = x.ebynSifre || '';
+  state.ofis = ofisOku();
+}
+
+function aktif() {
+  return state.mukellefler.find((m) => m.id === state.aktifId) || null;
+}
+
+function renderVergiManuel() {
+  const box = $('vergiManuelList');
+  if (!state.vergiManuel.length) state.vergiManuel = [{ ad: 'KDV', tutar: '', donem: '' }];
+  box.innerHTML = state.vergiManuel.map((k, i) => `
+    <div class="row row-3" data-vi="${i}" style="margin-bottom:8px">
+      <div><input data-f="ad" value="${(k.ad || '').replace(/"/g, '&quot;')}" placeholder="Kalem (KDV)" /></div>
+      <div><input data-f="tutar" value="${(k.tutar || '').replace(/"/g, '&quot;')}" placeholder="Tutar" /></div>
+      <div style="display:flex;gap:6px">
+        <input data-f="donem" value="${(k.donem || '').replace(/"/g, '&quot;')}" placeholder="Donem" />
+        <button type="button" class="btn btn-danger" data-del="${i}">X</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function okuVergiManuel() {
+  const rows = [];
+  $('vergiManuelList').querySelectorAll('[data-vi]').forEach((row) => {
+    rows.push({
+      ad: row.querySelector('[data-f="ad"]').value.trim(),
+      tutar: row.querySelector('[data-f="tutar"]').value.trim(),
+      donem: row.querySelector('[data-f="donem"]').value.trim(),
+    });
+  });
+  state.vergiManuel = rows;
+  return rows;
+}
+
+function formdanOku() {
+  return {
+    id: state.aktifId || emptyMukellef().id,
+    ad: $('ad').value.trim() || 'Mukellef',
+    vkn: $('vkn').value.trim(),
+    telefon: $('telefon').value.trim(),
+    whatsappTip: seciliWhatsappTip(),
+    muhasebeUcreti: $('muhasebeUcreti').value.trim(),
+    muhasebeDonem: $('muhasebeDonem').value.trim(),
+    ivdKullanici: $('ivdKullanici').value.trim(),
+    ivdSifre: $('ivdSifre').value,
+    sgkKullanici: $('sgkKullanici').value.trim(),
+    sgkKullaniciKodu: $('sgkKullaniciKodu').value.trim(),
+    sgkSistemSifre: $('sgkSistemSifre').value,
+    sgkIsyeriSifre: $('sgkIsyeriSifre').value,
+    sgkSubeKullanici: $('sgkSubeKullanici').value.trim(),
+    sgkSubeKullaniciKodu: $('sgkSubeKullaniciKodu').value.trim(),
+    sgkSubeSistemSifre: $('sgkSubeSistemSifre').value,
+    sgkSubeSifre: $('sgkSubeSifre').value,
+    sgkSubeAdi: ($('sgkSubeAdi')?.value || '').trim(),
+    sgkManuelTutar: $('sgkManuelTutar').value.trim(),
+    sgkManuelDonem: $('sgkManuelDonem').value.trim(),
+    vergiManuel: okuVergiManuel(),
+  };
+}
+
+function formaYaz(m) {
+  const x = m || emptyMukellef();
+  $('ad').value = x.ad || '';
+  $('vkn').value = x.vkn || '';
+  $('telefon').value = x.telefon || '';
+  $('muhasebeUcreti').value = x.muhasebeUcreti || '';
+  $('muhasebeDonem').value = x.muhasebeDonem || '';
+  // Tip gondermeden hemen once secilir; mukellef degisince sifirlanmaz
+  $('ivdKullanici').value = x.ivdKullanici || '';
+  $('ivdSifre').value = x.ivdSifre || '';
+  $('sgkKullanici').value = x.sgkKullanici || '';
+  $('sgkKullaniciKodu').value = x.sgkKullaniciKodu || '';
+  $('sgkSistemSifre').value = x.sgkSistemSifre || '';
+  $('sgkIsyeriSifre').value = x.sgkIsyeriSifre || '';
+  $('sgkSubeKullanici').value = x.sgkSubeKullanici || '';
+  if ($('sgkSubeKullaniciKodu')) $('sgkSubeKullaniciKodu').value = x.sgkSubeKullaniciKodu || '';
+  if ($('sgkSubeSistemSifre')) $('sgkSubeSistemSifre').value = x.sgkSubeSistemSifre || '';
+  $('sgkSubeSifre').value = x.sgkSubeSifre || '';
+  if ($('sgkSubeAdi')) $('sgkSubeAdi').value = x.sgkSubeAdi || '';
+  $('sgkManuelTutar').value = x.sgkManuelTutar || '';
+  $('sgkManuelDonem').value = x.sgkManuelDonem || '';
+  state.vergiManuel = Array.isArray(x.vergiManuel) && x.vergiManuel.length
+    ? x.vergiManuel
+    : [{ ad: 'KDV', tutar: '', donem: '' }];
+  renderVergiManuel();
+  updateMetinLabel();
+  updateCekOzet();
+}
+
+function refreshSelect() {
+  const sel = $('profilSec');
+  sel.innerHTML = '';
+  for (const m of state.mukellefler) {
+    const o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = m.ad + (m.vkn ? ` (${m.vkn})` : '');
+    sel.appendChild(o);
+  }
+  if (state.aktifId) sel.value = state.aktifId;
+  $('silBtn').disabled = state.mukellefler.length <= 1;
+  updateCekOzet();
+  renderBellekOzet();
+}
+
+const AY_ADLARI = ['','Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'];
+
+function fillAySelect(sel) {
+  sel.innerHTML = '';
+  for (let a = 1; a <= 12; a++) {
+    const o = document.createElement('option');
+    o.value = String(a);
+    o.textContent = `${String(a).padStart(2, '0')} ${AY_ADLARI[a]}`;
+    sel.appendChild(o);
+  }
+}
+
+function fillYilSelect(sel, currentYear) {
+  sel.innerHTML = '';
+  for (let y = currentYear; y >= currentYear - 3; y--) {
+    const o = document.createElement('option');
+    o.value = String(y);
+    o.textContent = String(y);
+    sel.appendChild(o);
+  }
+}
+
+function updateCekOzet() {
+  const m = formdanOku();
+  const y = $('cekYil').value;
+  const a = Number($('cekAy').value);
+  $('cekOzet').textContent =
+    `Cekilecek: ${m.ad || 'Mukellef'} / ${m.vkn || 'VKN yok'} · Donem: ${AY_ADLARI[a]} ${y}`;
+  if (!$('donemEtiket').dataset.touched) {
+    $('donemEtiket').value = `${AY_ADLARI[a]} ${y}`;
+  }
+  syncMuhasebeDonemAlani();
+}
+
+function onVergiDonemiDegisti() {
+  updateCekOzet();
+  renderBellekOzet();
+  aktifBellektenYukle();
+  if ($('fisGosterPanel').style.display === 'block') {
+    renderFisGoster();
+  }
+}
+
+function fillYilAy() {
+  const now = new Date();
+  // Varsayilan: onceki ay (genelde odenecek beyanname donemi)
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const y = prev.getFullYear();
+  const a = prev.getMonth() + 1;
+  fillAySelect($('cekAy'));
+  fillYilSelect($('cekYil'), now.getFullYear());
+  $('cekYil').value = String(y);
+  $('cekAy').value = String(a);
+}
+
+function seciliDonem() {
+  const yil = Number($('cekYil').value);
+  const ay = Number($('cekAy').value);
+  return { yil, ay, yilBitis: yil, ayBitis: ay };
+}
+
+function persistFormToState() {
+  const i = state.mukellefler.findIndex((m) => m.id === state.aktifId);
+  if (i < 0) return;
+  state.mukellefler[i] = formdanOku();
+}
+
+async function kaydet(opts = {}) {
+  persistFormToState();
+  state.ofis = ofisOku();
+  const r = await api().save({
+    ofis: state.ofis,
+    mukellefler: state.mukellefler,
+    aktifId: state.aktifId,
+  });
+  if (!r.ok) {
+    showMsg(r.msg || 'Kayit hatasi', 'hata');
+    return false;
+  }
+  refreshSelect();
+  showMsg(opts.msg || 'Kaydedildi.', 'ok');
+  return true;
+}
+
+function formatTl(n) {
+  return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderKalemler(list) {
+  const body = $('kalemBody');
+  if (!body) return;
+  const temiz = (list || []).filter((k) => (Number(k.tutar) || 0) > 0 || k.ad || k.kaynak);
+  if (!temiz.length) {
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--txD)">Kalem yok — Getir veya + Satir</td></tr>';
+    return;
+  }
+  body.innerHTML = temiz.map((k, i) => `
+    <tr data-ki="${i}">
+      <td><input data-f="kaynak" value="${escHtml(k.kaynak || '')}" style="width:70px;padding:6px 8px" /></td>
+      <td><input data-f="ad" value="${escHtml(k.ad || '')}" style="width:100%;padding:6px 8px" /></td>
+      <td><input data-f="donem" value="${escHtml(normalizeDonemUi(k.donem))}" style="width:90px;padding:6px 8px" placeholder="03/2026" /></td>
+      <td><input data-f="tutar" value="${escHtml(k.tutar != null && k.tutar !== '' ? formatTl(k.tutar) : '')}" style="width:110px;padding:6px 8px;text-align:right" /></td>
+      <td><button type="button" class="btn btn-danger" data-kdel="${i}" style="padding:4px 8px">X</button></td>
+    </tr>
+  `).join('');
+}
+
+function okuKalemFormundan() {
+  const rows = [];
+  $('kalemBody').querySelectorAll('tr[data-ki]').forEach((row) => {
+    const tutarRaw = row.querySelector('[data-f="tutar"]')?.value.trim() || '';
+    const tutar = Number(String(tutarRaw).replace(/\./g, '').replace(',', '.')) || 0;
+    rows.push({
+      kaynak: row.querySelector('[data-f="kaynak"]')?.value.trim() || '',
+      ad: row.querySelector('[data-f="ad"]')?.value.trim() || '',
+      donem: normalizeDonemUi(row.querySelector('[data-f="donem"]')?.value || ''),
+      tutar,
+    });
+  });
+  return rows.filter((k) => k.ad || k.tutar > 0);
+}
+
+function kalemleriBellegeYaz(kalemler) {
+  const id = state.aktifId;
+  if (!id) return;
+  state.sonKalemler = kalemler;
+  const bellek = state.bellek;
+  bellek.sonuclar = bellek.sonuclar || {};
+  const eski = bellek.sonuclar[id] || { id, ad: aktif()?.ad, vkn: aktif()?.vkn };
+  const { yil, ay } = seciliDonem();
+  const key = donemAnahtarUi(yil, ay);
+  const donemler = { ...(eski.donemler || {}) };
+  const onceki = donemler[key] || {};
+  donemler[key] = {
+    ...onceki,
+    kalemler,
+    pdfDosyalari: onceki.pdfDosyalari || eski.pdfDosyalari || [],
+    ok: true,
+    zaman: new Date().toISOString(),
+  };
+  bellek.sonuclar[id] = {
+    ...eski,
+    kalemler,
+    donemler,
+    sonDonem: key,
+    zaman: new Date().toISOString(),
+  };
+  api().bellekKaydet(bellek).catch(() => {});
+}
+
+async function init() {
+  if (!window.tahakkukApp) {
+    showMsg('API yok. Masaustundeki eski Musavirim.exe degil; proje klasorunde npm start ile ac.', 'hata');
+    return;
+  }
+  fillYilAy();
+  $('donemEtiket').addEventListener('input', () => {
+    $('donemEtiket').dataset.touched = '1';
+  });
+  $('cekYil').addEventListener('change', onVergiDonemiDegisti);
+  $('cekAy').addEventListener('change', onVergiDonemiDegisti);
+  ['ad', 'vkn'].forEach((id) => $(id).addEventListener('input', updateCekOzet));
+
+  const r = await api().load();
+  state.sgkUrl = r.sgkUrl || {};
+  state.ivdUrl = r.ivdUrl || 'https://ivd.gib.gov.tr';
+  state.ofis = r.ofis || { ebynKullanici: '', ebynParola: '', ebynSifre: '', fisKlasor: '' };
+  state.fisKlasor = state.ofis.fisKlasor || r.fisKlasor || '';
+  if ($('fisKlasorYol')) {
+    $('fisKlasorYol').textContent = state.ofis.fisKlasor
+      ? `Ortak klasör: ${state.ofis.fisKlasor}`
+      : `Henüz seçilmedi — varsayılan: ${r.fisKlasor || 'Belgeler\\\\Musavirim\\\\Tahakkuk\\\\fisler'}`;
+  }
+  state.ebynUrl = r.ebynUrl || 'https://ebeyanname.gib.gov.tr';
+  ofisYaz(state.ofis);
+  state.mukellefler = Array.isArray(r.mukellefler) && r.mukellefler.length
+    ? r.mukellefler
+    : [emptyMukellef()];
+  state.aktifId = r.aktifId || state.mukellefler[0].id;
+  if (!state.mukellefler.find((m) => m.id === state.aktifId)) {
+    state.aktifId = state.mukellefler[0].id;
+  }
+  state.bellek = r.bellek || { donem: null, zaman: null, sonuclar: {} };
+  if (state.bellek.donem?.donemEtiket && !$('donemEtiket').dataset.touched) {
+    $('donemEtiket').value = state.bellek.donem.donemEtiket;
+  }
+  formaYaz(aktif());
+  refreshSelect();
+  renderBellekOzet();
+  syncMuhasebeDonemAlani();
+  aktifBellektenYukle();
+  api().onWaState((s) => {
+    renderWaState(s);
+    if (s && s.status === 'qr' && s.qrDataUrl) {
+      sekmeAc('ayarlar');
+    }
+  });
+  let waMesaj = null;
+  try {
+    const mevcut = await api().waStatus();
+    renderWaState(mevcut);
+    if (mevcut.status !== 'hazir') {
+      const r = await api().waStart();
+      renderWaState(r);
+      if (r.ok && r.status === 'hazir') {
+        waMesaj = { t: 'WhatsApp hazir (otomatik baglandi).', tip: 'ok' };
+      } else if (r.ok && (r.qrDataUrl || r.status === 'qr' || r.status === 'baglaniyor')) {
+        sekmeAc('ayarlar');
+        waMesaj = { t: 'Karekod hazir — telefonda okut (bir kez yeterli).', tip: 'info' };
+      } else if (!r.ok) {
+        waMesaj = { t: r.msg || 'WhatsApp otomatik baglanamadi; Ayarlar\'dan Baglan.', tip: 'hata' };
+      }
+    } else {
+      waMesaj = { t: 'WhatsApp hazir.', tip: 'ok' };
+    }
+  } catch (_) {
+    waMesaj = { t: 'WhatsApp baslatilamadi; Ayarlar sekmesinden Baglan.', tip: 'hata' };
+  }
+  const bellekN = Object.keys(state.bellek.sonuclar || {}).length;
+  if (waMesaj && (waMesaj.tip === 'hata' || waMesaj.tip === 'info')) {
+    showMsg(waMesaj.t, waMesaj.tip);
+  } else if (bellekN) {
+    showMsg(`WhatsApp hazir. Bellekte ${bellekN} mukellef sonucu var.`, 'ok');
+  } else if (waMesaj) {
+    showMsg(waMesaj.t, waMesaj.tip);
+  }
+}
+
+$('profilSec').addEventListener('change', () => {
+  persistFormToState();
+  state.aktifId = $('profilSec').value;
+  state.seciliPdfYollari = null;
+  state.makbuzDuzenleniyor = false;
+  formaYaz(aktif());
+  aktifBellektenYukle();
+  renderBellekOzet();
+});
+
+$('yeniBtn').addEventListener('click', () => {
+  persistFormToState();
+  const m = emptyMukellef();
+  state.mukellefler.push(m);
+  state.aktifId = m.id;
+  formaYaz(m);
+  refreshSelect();
+  aktifBellektenYukle();
+});
+
+$('silBtn').addEventListener('click', () => {
+  if (state.mukellefler.length <= 1) return;
+  if (!confirm('Bu mukellefi silmek istiyor musunuz?')) return;
+  state.mukellefler = state.mukellefler.filter((m) => m.id !== state.aktifId);
+  state.aktifId = state.mukellefler[0].id;
+  formaYaz(aktif());
+  refreshSelect();
+  aktifBellektenYukle();
+  renderBellekOzet();
+});
+
+/** Isme tikla → duzenlenebilir kalem tablosu */
+function detayAc(id) {
+  persistFormToState();
+  if (state.onizlemeAcik && state.aktifId === id) {
+    state.onizlemeAcik = false;
+    state.makbuzOnizlemeAcik = false;
+    state.makbuzDuzenleniyor = false;
+    parkOnizleme();
+    renderBellekOzet();
+    return;
+  }
+  state.aktifId = id;
+  state.onizlemeAcik = true;
+  state.makbuzOnizlemeAcik = false;
+  state.seciliPdfYollari = null;
+  state.makbuzDuzenleniyor = false;
+  $('profilSec').value = state.aktifId;
+  formaYaz(aktif());
+  renderBellekOzet();
+
+  const kayit = bellekKaydi(id);
+  const { yil, ay } = seciliDonem();
+  const donemKayit = mukellefDonemKaydi(kayit, yil, ay);
+  if (!donemKayit && !kayit) {
+    state.sonKalemler = [];
+    state.sonPdfDosyalari = [];
+    renderKalemler([]);
+    $('bellekDurum').textContent = 'Bu donemde veri yok — once Getir';
+    $('makbuzWrap').classList.remove('show');
+    return;
+  }
+  const kaynak = donemKayit || kayit;
+  state.sonKalemler = (kaynak.kalemler || [])
+    .map((k) => ({ ...k, donem: normalizeDonemUi(k.donem) }))
+    .filter((k) => (Number(k.tutar) || 0) > 0 || k.ad);
+  state.sonPdfDosyalari = (kaynak.pdfDosyalari || [])
+    .map((p) => (typeof p === 'string' ? p : p.path))
+    .filter(Boolean);
+  const n = state.sonKalemler.length;
+  const tutar = state.sonKalemler.reduce((s, k) => s + (Number(k.tutar) || 0), 0);
+  $('bellekDurum').textContent = `${donemAnahtarUi(yil, ay)} · ${n} kalem · ${formatTl(tutar)} TL · duzenleyebilirsin`;
+  $('detayBaslik').textContent = `${aktif()?.ad || 'Kalemler'}`;
+  renderKalemler(state.sonKalemler);
+  $('makbuzWrap').classList.remove('show');
+}
+
+/** WP makbuz gorseli onizleme */
+async function makbuzGorselOnizle(id) {
+  if (!state.onizlemeAcik || state.aktifId !== id) {
+    detayAc(id);
+  }
+  state.makbuzOnizlemeAcik = true;
+  const kalemler = okuKalemFormundan().length ? okuKalemFormundan() : kalemlerGosterimIcin();
+  if (kalemler.length) state.sonKalemler = kalemler;
+  const r = await api().metin({
+    tip: 'makbuz',
+    firmaAdi: $('ad').value.trim() || aktif()?.ad,
+    vkn: $('vkn').value.trim(),
+    donemEtiket: $('donemEtiket').value.trim(),
+    kalemler: state.sonKalemler,
+  });
+  if (r.ok && r.makbuz) {
+    state.sonMakbuz = r.makbuz;
+    renderMakbuzKart(r.makbuz);
+    $('makbuzWrap').classList.add('show');
+    try { $('makbuzWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
+  } else {
+    showMsg('Makbuz olusamadi — once Getir / kalem kaydet.', 'hata');
+    $('makbuzWrap').classList.remove('show');
+  }
+}
+
+$('bellekOzetBody').addEventListener('click', (e) => {
+  if (e.target.closest('#onizlemePanel')) {
+    // Panel ici: kalem sil
+    const del = e.target.closest('[data-kdel]');
+    if (del) {
+      const form = okuKalemFormundan();
+      form.splice(Number(del.getAttribute('data-kdel')), 1);
+      renderKalemler(form.length ? form : [{ kaynak: '', ad: '', donem: '', tutar: '' }]);
+    }
+    return;
+  }
+  if (e.target.closest('input.m-sec')) return;
+  const btnGetir = e.target.closest('.btn-getir');
+  if (btnGetir) {
+    e.preventDefault();
+    e.stopPropagation();
+    getirSecilenleri(false, [btnGetir.getAttribute('data-mid')]);
+    return;
+  }
+  const btn = e.target.closest('.btn-onizleme');
+  if (btn) {
+    e.preventDefault();
+    e.stopPropagation();
+    makbuzGorselOnizle(btn.getAttribute('data-mid'));
+    return;
+  }
+  const ad = e.target.closest('.m-ad');
+  if (ad) {
+    e.preventDefault();
+    detayAc(ad.getAttribute('data-mid'));
+  }
+});
+
+$('onizlemeKapatBtn').addEventListener('click', () => {
+  state.onizlemeAcik = false;
+  state.makbuzOnizlemeAcik = false;
+  state.makbuzDuzenleniyor = false;
+  parkOnizleme();
+  renderBellekOzet();
+});
+
+$('kalemKaydetBtn').addEventListener('click', () => {
+  const kalemler = okuKalemFormundan();
+  kalemleriBellegeYaz(kalemler);
+  renderKalemler(kalemler);
+  renderBellekOzet();
+  // Detay acik kalsin
+  state.onizlemeAcik = true;
+  yerlestirOnizleme();
+  renderKalemler(kalemler);
+  const tutar = kalemler.reduce((s, k) => s + (Number(k.tutar) || 0), 0);
+  $('bellekDurum').textContent = `${seciliDonemKey()} · ${kalemler.length} kalem · ${formatTl(tutar)} TL · kaydedildi`;
+  showMsg('Kalemler kaydedildi.', 'ok');
+});
+
+$('kalemSatirEkleBtn').addEventListener('click', () => {
+  const form = okuKalemFormundan();
+  const d = seciliDonem();
+  form.push({ kaynak: 'manuel', ad: '', donem: donemAnahtarUi(d.yil, d.ay), tutar: '' });
+  renderKalemler(form);
+});
+
+$('makbuzOnizleBtn').addEventListener('click', () => {
+  if (!state.aktifId) return;
+  makbuzGorselOnizle(state.aktifId);
+});
+
+$('bellekOzetBody').addEventListener('change', (e) => {
+  const cb = e.target.closest('input.m-sec');
+  if (!cb) return;
+  e.stopPropagation();
+});
+
+$('hepsiniSec').addEventListener('change', () => {
+  const on = $('hepsiniSec').checked;
+  $('bellekOzetBody').querySelectorAll('tr[data-bid]').forEach((tr) => {
+    if (tr.style.display === 'none') return;
+    const cb = tr.querySelector('input.m-sec');
+    if (cb) cb.checked = on;
+  });
+});
+
+function seciliMukellefIdleri() {
+  return [...$('bellekOzetBody').querySelectorAll('input.m-sec:checked')]
+    .map((cb) => cb.getAttribute('data-mid'))
+    .filter(Boolean);
+}
+
+$('kaydetBtn').addEventListener('click', () => kaydet({ msg: 'Mukellef kaydedildi.' }));
+$('ofisKaydetBtn').addEventListener('click', () => kaydet({ msg: 'Ofis e-Beyanname bilgisi kaydedildi.' }));
+
+function sekmeAc(ad) {
+  document.querySelectorAll('#anaTabs .tab').forEach((b) => {
+    b.classList.toggle('active', b.getAttribute('data-tab') === ad);
+  });
+  document.querySelectorAll('.panel').forEach((p) => {
+    p.classList.toggle('active', p.id === `panel-${ad}`);
+  });
+}
+
+$('anaTabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab[data-tab]');
+  if (!btn) return;
+  sekmeAc(btn.getAttribute('data-tab'));
+});
+
+$('excelSablonBtn').addEventListener('click', async () => {
+  const r = await api().excelSablon();
+  if (r.canceled) return;
+  showMsg(r.ok ? `Sablon kaydedildi: ${r.path}` : (r.msg || 'Sablon hatasi'), r.ok ? 'ok' : 'hata');
+});
+
+$('excelDisariBtn').addEventListener('click', async () => {
+  persistFormToState();
+  state.ofis = ofisOku();
+  await api().save({
+    ofis: state.ofis,
+    mukellefler: state.mukellefler,
+    aktifId: state.aktifId,
+  });
+  const r = await api().excelDisari();
+  if (r.canceled) return;
+  showMsg(r.ok ? (r.msg || `Kaydedildi: ${r.path}`) : (r.msg || 'Excel aktarim hatasi'), r.ok ? 'ok' : 'hata');
+});
+
+$('excelAktarBtn').addEventListener('click', async () => {
+  persistFormToState();
+  showMsg('Excel okunuyor...', 'info');
+  const r = await api().excelAktar({ aktifId: state.aktifId });
+  if (r.canceled) {
+    showMsg('Aktarim iptal.', 'info');
+    return;
+  }
+  if (!r.ok) {
+    showMsg(r.msg || 'Excel aktarim hatasi', 'hata');
+    return;
+  }
+  state.mukellefler = r.mukellefler || [];
+  state.aktifId = r.aktifId || (state.mukellefler[0] && state.mukellefler[0].id);
+  formaYaz(aktif());
+  refreshSelect();
+  aktifBellektenYukle();
+  renderBellekOzet();
+  showMsg(r.msg || 'Aktarildi.', 'ok');
+});
+
+$('vergiSatirEkle').addEventListener('click', () => {
+  okuVergiManuel();
+  state.vergiManuel.push({ ad: '', tutar: '', donem: '' });
+  renderVergiManuel();
+});
+
+$('vergiManuelList').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-del]');
+  if (!btn) return;
+  okuVergiManuel();
+  const i = Number(btn.getAttribute('data-del'));
+  state.vergiManuel.splice(i, 1);
+  if (!state.vergiManuel.length) state.vergiManuel.push({ ad: 'KDV', tutar: '', donem: '' });
+  renderVergiManuel();
+});
+
+$('testIvdBtn').addEventListener('click', async () => {
+  persistFormToState();
+  const m = formdanOku();
+  if (!m.ivdKullanici || !m.ivdSifre) {
+    showMsg('IVD kullanici kodu ve sifre gir.', 'hata');
+    return;
+  }
+  showMsg('IVD test ediliyor...', 'info');
+  const r = await api().testIvd({
+    ivdKullanici: m.ivdKullanici,
+    ivdSifre: m.ivdSifre,
+  });
+  showMsg(r.msg, r.ok ? 'ok' : 'hata');
+});
+
+$('testEbynBtn').addEventListener('click', async () => {
+  const ofis = ofisOku();
+  const m = formdanOku();
+  if (!ofis.ebynKullanici || !ofis.ebynParola || !ofis.ebynSifre) {
+    showMsg('Ofis e-Beyanname kullanici, parola ve sifre gir.', 'hata');
+    return;
+  }
+  showMsg('e-Beyanname test ediliyor...', 'info');
+  const r = await api().testEbyn({
+    ebynKullanici: ofis.ebynKullanici,
+    ebynParola: ofis.ebynParola,
+    ebynSifre: ofis.ebynSifre,
+    vkn: m.vkn || undefined,
+  });
+  showMsg(r.msg, r.ok ? 'ok' : 'hata');
+});
+
+$('ivdPortalBtn').addEventListener('click', () => {
+  api().openUrl(state.ivdUrl || 'https://ivd.gib.gov.tr');
+});
+$('ebynPortalBtn').addEventListener('click', () => {
+  api().openUrl(state.ebynUrl || 'https://ebeyanname.gib.gov.tr');
+});
+$('fisKlasorSecBtn')?.addEventListener('click', async () => {
+  if (typeof api().selectFisFolder !== 'function') {
+    showMsg('Klasör seçimi desteklenmiyor — uygulamayı yeniden başlat.', 'hata');
+    return;
+  }
+  const r = await api().selectFisFolder();
+  if (r?.canceled) return;
+  if (!r?.ok) {
+    showMsg(r?.msg || 'Klasör seçilemedi', 'hata');
+    return;
+  }
+  state.fisKlasor = r.path;
+  state.ofis = { ...(state.ofis || {}), fisKlasor: r.path };
+  if ($('fisKlasorYol')) $('fisKlasorYol').textContent = `Ortak klasör: ${r.path}`;
+  showMsg(`Ortak PDF klasörü kaydedildi. Tüm firmalar buraya iner.`, 'ok');
+});
+
+$('fisKlasorBtn').addEventListener('click', async () => {
+  const r = await api().openFisFolder();
+  if (r?.path) {
+    state.fisKlasor = r.path;
+    if ($('fisKlasorYol') && state.ofis?.fisKlasor) {
+      $('fisKlasorYol').textContent = `Ortak klasör: ${state.ofis.fisKlasor}`;
+    }
+  }
+});
+
+$('islemIndirBtn')?.addEventListener('click', async () => {
+  const r = await api().openFisFolder();
+  showMsg(r?.ok === false ? (r.msg || 'Klasör açılamadı') : `Ortak PDF klasörü: ${r.path || ''}`, r?.ok === false ? 'hata' : 'ok');
+});
+
+$('sgkBorcBtn').addEventListener('click', () => {
+  api().openUrl(state.sgkUrl.borcSorgu || 'https://uyg.sgk.gov.tr/IsverenBorcSorgu/login/userLogin.action');
+});
+$('sgkIsverenBtn').addEventListener('click', () => {
+  api().openUrl(state.sgkUrl.isveren || 'https://uyg.sgk.gov.tr/IsverenSistemi');
+});
+
+if (typeof api().onSgkStatus === 'function') {
+  api().onSgkStatus((p) => {
+    if (p && p.msg) showMsg(p.msg, 'info');
+  });
+}
+
+let sgkCaptchaId = null;
+function sgkCaptchaGoster(p) {
+  sgkCaptchaId = p && p.id ? p.id : null;
+  const modal = $('sgkCaptchaModal');
+  const img = $('sgkCaptchaImg');
+  const inp = $('sgkCaptchaInput');
+  if (img && p && p.imageDataUrl) {
+    img.src = p.imageDataUrl;
+    img.style.display = 'block';
+  }
+  if (inp) {
+    inp.value = '';
+    setTimeout(() => { try { inp.focus(); } catch (_) {} }, 50);
+  }
+  if (modal) modal.hidden = false;
+  showMsg('SGK captcha — kodu yazip Giris Yap.', 'info');
+}
+function sgkCaptchaGizle() {
+  sgkCaptchaId = null;
+  const modal = $('sgkCaptchaModal');
+  if (modal) modal.hidden = true;
+  const img = $('sgkCaptchaImg');
+  if (img) img.removeAttribute('src');
+}
+if (typeof api().onSgkCaptcha === 'function') {
+  api().onSgkCaptcha((p) => sgkCaptchaGoster(p));
+}
+$('sgkCaptchaOkBtn')?.addEventListener('click', async () => {
+  const code = ($('sgkCaptchaInput')?.value || '').trim();
+  if (!code) {
+    showMsg('Captcha kodunu yaz.', 'hata');
+    return;
+  }
+  $('sgkCaptchaOkBtn').disabled = true;
+  try {
+    await api().sgkCaptchaSubmit({ id: sgkCaptchaId, code });
+    sgkCaptchaGizle();
+    showMsg('SGK giris gonderildi — arka planda devam…', 'info');
+  } finally {
+    $('sgkCaptchaOkBtn').disabled = false;
+  }
+});
+$('sgkCaptchaInput')?.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    $('sgkCaptchaOkBtn')?.click();
+  }
+});
+$('sgkCaptchaYenileBtn')?.addEventListener('click', async () => {
+  $('sgkCaptchaYenileBtn').disabled = true;
+  try {
+    const r = await api().sgkCaptchaRefresh({ id: sgkCaptchaId });
+    if (r && r.ok && r.imageDataUrl) {
+      $('sgkCaptchaImg').src = r.imageDataUrl;
+      $('sgkCaptchaInput').value = '';
+      $('sgkCaptchaInput').focus();
+    } else {
+      showMsg(r?.msg || 'Captcha yenilenemedi', 'hata');
+    }
+  } finally {
+    $('sgkCaptchaYenileBtn').disabled = false;
+  }
+});
+$('sgkCaptchaIptalBtn')?.addEventListener('click', async () => {
+  await api().sgkCaptchaCancel({ id: sgkCaptchaId });
+  sgkCaptchaGizle();
+  showMsg('SGK captcha iptal.', 'info');
+});
+
+$('sgkCariCekBtn').addEventListener('click', async () => {
+  await kaydet({ msg: 'Kaydedildi...' });
+  const m = formdanOku();
+  const merkezOk = m.sgkKullanici && m.sgkKullaniciKodu && m.sgkSistemSifre && m.sgkIsyeriSifre;
+  const subeOk = (
+    (m.sgkSubeKullanici || m.sgkKullanici)
+    && (m.sgkSubeKullaniciKodu || m.sgkKullaniciKodu)
+    && (m.sgkSubeSistemSifre || m.sgkSistemSifre)
+    && (m.sgkSubeSifre || m.sgkIsyeriSifre)
+    && (m.sgkSubeKullanici || m.sgkSubeKullaniciKodu || m.sgkSubeSistemSifre || m.sgkSubeSifre)
+  );
+  if (!merkezOk && !subeOk) {
+    showMsg('SGK: merkez ve/veya şube — kullanici + kod + sistem sifre + isyeri sifre doldur.', 'hata');
+    return;
+  }
+  showMsg(
+    merkezOk && (m.sgkSubeKullanici || m.sgkSubeSifre || m.sgkSubeKullaniciKodu || m.sgkSubeSistemSifre)
+      ? 'SGK: önce Merkez, sonra Şube — her biri için captcha…'
+      : 'SGK arka planda aciliyor — captcha bekleniyor…',
+    'info',
+  );
+  $('sgkCariCekBtn').disabled = true;
+  try {
+    const r = await api().sgkCek({
+      mukellef: m,
+      donemEtiket: $('donemEtiket').value.trim(),
+      ...seciliDonem(),
+    });
+    sgkCaptchaGizle();
+    if (!r.ok) {
+      showMsg(r.msg || 'SGK alinamadi', r.iptal ? 'info' : 'hata');
+      return;
+    }
+    if (r.bellek) state.bellek = r.bellek;
+    renderBellekOzet();
+    aktifBellektenYukle();
+    const tutar = (r.kalemler || []).reduce((s, k) => s + (Number(k.tutar) || 0), 0);
+    showMsg(`SGK eklendi: ${formatTl(tutar)} TL`, 'ok');
+  } finally {
+    $('sgkCariCekBtn').disabled = false;
+    sgkCaptchaGizle();
+  }
+});
+
+$('cekBtn').addEventListener('click', async () => {
+  await kaydet({ msg: 'Kaydedildi, cekiliyor...' });
+  const m = formdanOku();
+  const ofis = ofisOku();
+  if (!ofis.ebynKullanici || !ofis.ebynParola || !ofis.ebynSifre) {
+    showMsg('Once ofis e-Beyanname bilgilerini kaydet.', 'hata');
+    sekmeAc('ayarlar');
+    return;
+  }
+  if (!m.vkn) {
+    showMsg('Secili mukellefin VKN/TCKN bilgisini yaz.', 'hata');
+    sekmeAc('mukellef');
+    return;
+  }
+  updateCekOzet();
+  showMsg(`Yenileniyor: ${m.ad} (${m.vkn})...`, 'info');
+  $('log').textContent = '';
+  $('cekBtn').disabled = true;
+  $('cekHepsiBtn').disabled = true;
+  try {
+    const r = await api().cek({
+      ofis,
+      mukellef: m,
+      donemEtiket: $('donemEtiket').value.trim(),
+      ...seciliDonem(),
+      ivdCek: $('ivdCek').checked,
+      sgkCek: !!$('sgkCekSorguda')?.checked,
+    });
+    if (r.bellek) state.bellek = r.bellek;
+    state.sonKalemler = r.kalemler || [];
+    state.sonPdfDosyalari = r.kaydedilenFisler || [];
+    renderKalemler(state.sonKalemler);
+    renderBellekOzet();
+    await metniYenile();
+    const logs = (r.loglar || []).map((l) => `[${l.tip}] ${l.mesaj}`).join('\n');
+    $('log').textContent = logs;
+    const hasHata = (r.loglar || []).some((l) => l.tip === 'hata');
+    showMsg(
+      `${m.ad}: ${(r.kalemler || []).length} kalem belleğe yazildi.` + (hasHata ? ' (hata var)' : ''),
+      hasHata ? 'hata' : 'ok',
+    );
+    aktifBellektenYukle();
+  } finally {
+    $('cekBtn').disabled = false;
+    $('cekHepsiBtn').disabled = false;
+  }
+});
+
+$('cekHepsiBtn').addEventListener('click', async () => {
+  // Hepsini getir
+  $('bellekOzetBody').querySelectorAll('input.m-sec').forEach((cb) => { cb.checked = true; });
+  await getirSecilenleri(true);
+});
+
+async function getirSecilenleri(hepsi, sadeceIds) {
+  await kaydet({ msg: 'Kaydedildi...' });
+  const ofis = ofisOku();
+  if (!ofis.ebynKullanici || !ofis.ebynParola || !ofis.ebynSifre) {
+    showMsg('Once Ayarlar → ofis e-Beyanname bilgilerini kaydet.', 'hata');
+    sekmeAc('ayarlar');
+    return;
+  }
+  persistFormToState();
+  let ids = Array.isArray(sadeceIds) && sadeceIds.length
+    ? sadeceIds.filter(Boolean)
+    : (hepsi
+      ? state.mukellefler.map((m) => m.id)
+      : seciliMukellefIdleri());
+  if (!ids.length) {
+    // hic isaret yoksa aktif mukellef
+    if (state.aktifId) ids = [state.aktifId];
+  }
+  let liste = state.mukellefler.filter((m) => ids.includes(m.id) && String(m.vkn || '').trim());
+  if (!liste.length) {
+    showMsg('VKN olan mukellef sec (veya Mukellefler sekmesinden ekle).', 'hata');
+    return;
+  }
+  updateCekOzet();
+  showMsg(`Getiriliyor: 0/${liste.length}...`, 'info');
+  $('log').textContent = '';
+  $('getirBtn').disabled = true;
+  $('cekHepsiBtn').disabled = true;
+  $('cekBtn').disabled = true;
+  document.querySelectorAll('.btn-getir').forEach((b) => { b.disabled = true; });
+  const offIlerleme = api().onCekIlerleme((p) => {
+    showMsg(`Getiriliyor: ${p.index}/${p.toplam} — ${p.ad}`, 'info');
+  });
+  try {
+    const r = await api().cekHepsi({
+      ofis,
+      mukellefler: liste,
+      donemEtiket: $('donemEtiket').value.trim(),
+      ...seciliDonem(),
+      ivdCek: $('ivdCek').checked,
+      sgkCek: !!$('sgkCekSorguda')?.checked,
+    });
+    if (!r.ok) {
+      showMsg(r.msg || 'Getirme basarisiz', 'hata');
+      return;
+    }
+    state.bellek = r.bellek || { donem: null, zaman: null, sonuclar: {} };
+    // Secimleri koru
+    const secili = new Set(ids);
+    renderBellekOzet();
+    $('bellekOzetBody').querySelectorAll('input.m-sec').forEach((cb) => {
+      cb.checked = secili.has(cb.getAttribute('data-mid'));
+    });
+    if (!secili.has(state.aktifId) && ids[0]) {
+      state.aktifId = ids[0];
+      $('profilSec').value = state.aktifId;
+      formaYaz(aktif());
+    }
+    aktifBellektenYukle();
+    const ozetSatir = (r.ozet || [])
+      .map((o) => `${o.ad}: ${o.kalemSayisi} kalem / ${formatTl(o.tutar)} TL${o.ok ? '' : ' (hata)'}`)
+      .join('\n');
+    $('log').textContent = ozetSatir;
+    showMsg(`${donemEtiketSecili()}: ${liste.length} mukellef getirildi.`, 'ok');
+  } finally {
+    offIlerleme();
+    $('getirBtn').disabled = false;
+    $('cekHepsiBtn').disabled = false;
+    $('cekBtn').disabled = false;
+    document.querySelectorAll('.btn-getir').forEach((b) => { b.disabled = false; });
+  }
+}
+
+$('getirBtn').addEventListener('click', () => getirSecilenleri(false));
+
+$('gonderTipSelect')?.addEventListener('change', async () => {
+  setWhatsappTip($('gonderTipSelect').value === 'tahakkuk' ? 'tahakkuk' : 'makbuz');
+  try { await metniYenile(); } catch (e) { showMsg(e.message || String(e), 'hata'); }
+});
+
+$('mukellefAra')?.addEventListener('input', () => uygulaMukellefAra());
+
+$('hepsiniSecBtn')?.addEventListener('click', () => {
+  $('hepsiniSec').checked = true;
+  $('bellekOzetBody').querySelectorAll('tr[data-bid]').forEach((tr) => {
+    if (tr.style.display === 'none') return;
+    const cb = tr.querySelector('input.m-sec');
+    if (cb) cb.checked = true;
+  });
+});
+
+$('secimiTemizleBtn')?.addEventListener('click', () => {
+  $('hepsiniSec').checked = false;
+  $('bellekOzetBody').querySelectorAll('input.m-sec').forEach((cb) => { cb.checked = false; });
+});
+
+$('islemExcelBtn')?.addEventListener('click', async () => {
+  const r = await api().excelSablon();
+  showMsg(r.ok ? `Şablon: ${r.path}` : (r.msg || 'Excel hatası'), r.ok ? 'ok' : 'hata');
+});
+
+['tipMakbuz', 'tipTahakkuk'].forEach((id) => {
+  $(id).addEventListener('change', async () => {
+    const tip = seciliWhatsappTip();
+    const sel = $('gonderTipSelect');
+    if (sel) sel.value = tip;
+    updateMetinLabel();
+    try {
+      await metniYenile();
+    } catch (e) {
+      showMsg(e.message || String(e), 'hata');
+    }
+  });
+});
+
+/** Tek mukellefe makbuz veya PDF gonder */
+async function gonderBirMukellef(m, tip) {
+  const tel = String(m.telefon || '').trim();
+  if (!tel) return { ok: false, msg: `${m.ad}: telefon yok` };
+
+  const { yil, ay } = seciliDonem();
+  const donemKayit = mukellefDonemKaydi(bellekKaydi(m.id), yil, ay);
+  if (!donemKayit) return { ok: false, msg: `${m.ad}: bu donemde veri yok (once Getir)` };
+
+  if (tip === 'makbuz') {
+    const kalemler = (donemKayit.kalemler || []).filter((k) => (Number(k.tutar) || 0) > 0);
+    // Muhasebe ucreti mukellef kaydindan
+    const ucret = Number(String(m.muhasebeUcreti || '').replace(/\./g, '').replace(',', '.'));
+    const list = [...kalemler];
+    if (Number.isFinite(ucret) && ucret > 0) {
+      const muhDonem = muhasebeDonemHesapla();
+      const idx = list.findIndex((k) => /muhasebe/i.test(String(k.ad || '')) || k.kaynak === 'muhasebe');
+      if (idx >= 0) list[idx] = { ...list[idx], ad: 'Muhasebe Ücreti', donem: muhDonem, tutar: ucret, kaynak: 'muhasebe' };
+      else list.unshift({ ad: 'Muhasebe Ücreti', donem: muhDonem, tutar: ucret, kaynak: 'muhasebe' });
+    }
+    if (!list.length) return { ok: false, msg: `${m.ad}: makbuz kalemi yok` };
+    const rMetin = await api().metin({ tip: 'makbuz', firmaAdi: m.ad, vkn: m.vkn, kalemler: list });
+    if (!rMetin.ok || !rMetin.makbuz) return { ok: false, msg: `${m.ad}: makbuz olusamadi` };
+    const r = await api().makbuzGonder({ makbuz: rMetin.makbuz, telefon: tel });
+    return { ok: !!r.ok, msg: r.msg || (r.ok ? `${m.ad}: gonderildi` : `${m.ad}: hata`) };
+  }
+
+  // Tahakkuk PDF
+  const pdfs = (donemKayit.pdfDosyalari || [])
+    .map((p) => (typeof p === 'string' ? p : p.path))
+    .filter(Boolean);
+  if (!pdfs.length) return { ok: false, msg: `${m.ad}: PDF yok` };
+  const r = await api().waPdfGonder({
+    telefon: tel,
+    mukellefId: m.id,
+    pdfDosyalari: pdfs,
+  });
+  return { ok: !!r.ok, msg: r.msg || (r.ok ? `${m.ad}: PDF gonderildi` : `${m.ad}: hata`) };
+}
+
+async function topluGonder(ids) {
+  const tip = seciliWhatsappTip();
+  const liste = state.mukellefler.filter((m) => ids.includes(m.id));
+  if (!liste.length) {
+    showMsg('Gonderilecek mukellef sec.', 'hata');
+    return;
+  }
+  $('secilileriGonderBtn').disabled = true;
+  $('topluGonderBtn').disabled = true;
+  const log = [];
+  let okN = 0;
+  try {
+    for (let i = 0; i < liste.length; i++) {
+      const m = liste[i];
+      showMsg(`Gonderiliyor ${i + 1}/${liste.length}: ${m.ad}...`, 'info');
+      const r = await gonderBirMukellef(m, tip);
+      log.push(r.msg);
+      if (r.ok) okN += 1;
+      // WhatsApp rate limit icin kisa bekle
+      await new Promise((res) => setTimeout(res, 800));
+    }
+    $('log').textContent = log.join('\n');
+    showMsg(`${okN}/${liste.length} gonderildi.`, okN ? 'ok' : 'hata');
+  } finally {
+    $('secilileriGonderBtn').disabled = false;
+    $('topluGonderBtn').disabled = false;
+  }
+}
+
+$('secilileriGonderBtn').addEventListener('click', async () => {
+  let ids = seciliMukellefIdleri();
+  if (!ids.length && state.aktifId) ids = [state.aktifId];
+  await topluGonder(ids);
+});
+
+$('topluGonderBtn').addEventListener('click', async () => {
+  const d = seciliDonem();
+  const ids = state.mukellefler
+    .filter((m) => !!mukellefDonemKaydi(bellekKaydi(m.id), d.yil, d.ay))
+    .map((m) => m.id);
+  if (!ids.length) {
+    showMsg('Bu donemde getirilmis mukellef yok. Once Getir.', 'hata');
+    return;
+  }
+  if (!confirm(`${ids.length} mukellefe ${seciliWhatsappTip() === 'makbuz' ? 'makbuz' : 'PDF'} gonderilsin mi?`)) return;
+  await topluGonder(ids);
+});
+
+$('duzenleBtn').addEventListener('click', async () => {
+  if (seciliWhatsappTip() !== 'makbuz') return;
+  if (state.makbuzDuzenleniyor) {
+    await makbuzUygula();
+  } else {
+    makbuzDuzenleAc();
+  }
+});
+
+$('makbuzDuzenleAltBtn').addEventListener('click', async () => {
+  if (state.makbuzDuzenleniyor) {
+    makbuzDuzenleIptal();
+  } else {
+    makbuzDuzenleAc();
+  }
+});
+
+$('makbuzUygulaBtn').addEventListener('click', () => makbuzUygula());
+
+$('makbuzSatirEkleBtn').addEventListener('click', () => {
+  if (!state.makbuzDuzenleniyor || !state.sonMakbuz) return;
+  const form = okuMakbuzFormundan();
+  form.satirlar.push({ donem: '', aciklama: '', tutar: '' });
+  state.sonMakbuz = {
+    ...state.sonMakbuz,
+    musteri: form.musteri,
+    tarih: form.tarih,
+    satirlar: form.satirlar.map((k) => ({
+      donem: k.donem,
+      aciklama: k.aciklama,
+      tutar: k.tutar === '' ? '' : (Number(String(k.tutar).replace(/\./g, '').replace(',', '.')) || 0),
+    })),
+  };
+  renderMakbuzKart(state.sonMakbuz);
+});
+
+$('mbBody').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-mdel]');
+  if (!btn || !state.makbuzDuzenleniyor) return;
+  const form = okuMakbuzFormundan();
+  const idx = Number(btn.getAttribute('data-mdel'));
+  form.satirlar.splice(idx, 1);
+  if (!form.satirlar.length) form.satirlar.push({ donem: '', aciklama: '', tutar: '' });
+  state.sonMakbuz = {
+    ...state.sonMakbuz,
+    musteri: form.musteri,
+    tarih: form.tarih,
+    satirlar: form.satirlar.map((k) => ({
+      donem: k.donem,
+      aciklama: k.aciklama,
+      tutar: k.tutar === '' ? '' : (Number(String(k.tutar).replace(/\./g, '').replace(',', '.')) || 0),
+    })),
+  };
+  renderMakbuzKart(state.sonMakbuz);
+});
+
+function donemAnahtarUi(yil, ay) {
+  return `${String(Number(ay)).padStart(2, '0')}/${Number(yil)}`;
+}
+
+function donemEslesirUi(donemStr, yil, ay) {
+  return String(donemStr || '').includes(donemAnahtarUi(yil, ay));
+}
+
+function seciliDonemKey() {
+  const d = seciliDonem();
+  return donemAnahtarUi(d.yil, d.ay);
+}
+
+function pdfKayitNorm(item, fallbackDonem) {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    return { path: item, donem: fallbackDonem || '', tur: '', filename: String(item).split(/[/\\]/).pop() };
+  }
+  const p = String(item.path || '').trim();
+  if (!p) return null;
+  return {
+    path: p,
+    donem: String(item.donem || fallbackDonem || '').trim(),
+    tur: String(item.tur || '').trim(),
+    filename: String(item.filename || p.split(/[/\\]/).pop()).trim(),
+  };
+}
+
+/** Bellekten secili vergi donemine ait kayit (kalem + PDF) */
+function mukellefDonemKaydi(kayit, yil, ay) {
+  if (!kayit) return null;
+  const key = donemAnahtarUi(yil, ay);
+  if (kayit.donemler && kayit.donemler[key]) {
+    return kayit.donemler[key];
+  }
+  // Eski kayitlar: donem alanina gore filtrele
+  const kalemler = (kayit.kalemler || []).filter((k) => {
+    if (!k.donem) return true; // donemsiz (manuel) — donem paketinde goster
+    // Muhasebe ucreti vergi+1 ay olabilir; PDF filtresinde ayri
+    if (/muhasebe/i.test(String(k.ad || '')) || k.kaynak === 'muhasebe') return true;
+    return donemEslesirUi(k.donem, yil, ay);
+  });
+  const pdfs = (kayit.pdfDosyalari || [])
+    .map((p) => pdfKayitNorm(p, kayit.sonDonem || ''))
+    .filter(Boolean)
+    .filter((p) => {
+      if (p.donem) return donemEslesirUi(p.donem, yil, ay);
+      // Donem bilgisi yoksa sadece son sorgu bu donemse dahil et
+      return kayit.sonDonem === key
+        || (state.bellek.donem
+          && Number(state.bellek.donem.ay) === Number(ay)
+          && Number(state.bellek.donem.yil) === Number(yil));
+    });
+  if (!kalemler.length && !pdfs.length) return null;
+  return { kalemler, pdfDosyalari: pdfs, ok: kayit.ok, zaman: kayit.zaman };
+}
+
+function donemEtiketSecili() {
+  const d = seciliDonem();
+  return `${AY_ADLARI[d.ay] || d.ay} ${d.yil}`;
+}
+
+function renderFisGoster() {
+  const panel = $('fisGosterPanel');
+  const list = $('fisGosterList');
+  const sonuclar = state.bellek.sonuclar || {};
+  const { yil, ay } = seciliDonem();
+  const donem = donemEtiketSecili();
+  const key = donemAnahtarUi(yil, ay);
+  const rows = [];
+  state.fisGosterPaths = [];
+
+  for (const m of state.mukellefler) {
+    const raw = sonuclar[m.id];
+    const k = mukellefDonemKaydi(raw, yil, ay);
+    if (!k) continue;
+    const pdfs = (k.pdfDosyalari || []).map((p) => pdfKayitNorm(p, key)).filter(Boolean);
+    const kalemler = (k.kalemler || []).filter((x) => (Number(x.tutar) || 0) > 0);
+    const kalemN = kalemler.length;
+    if (!pdfs.length && !kalemN) continue;
+
+    const kalemHtml = kalemler.length
+      ? `<div class="hint" style="margin:4px 0 4px 22px">${kalemler.map((x) => `${escHtml(x.ad || '')} ${escHtml(x.donem || '')} · ${formatTl(x.tutar)} TL`).join(' · ')}</div>`
+      : '';
+
+    const pdfHtml = pdfs.length
+      ? pdfs.map((p) => {
+        const idx = state.fisGosterPaths.length;
+        state.fisGosterPaths.push(p.path);
+        const ad = p.filename || String(p.path).split(/[/\\]/).pop();
+        const etiket = p.tur ? `${ad} (${p.tur})` : ad;
+        return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:4px 0 4px 22px;color:var(--tx)">
+          <input type="checkbox" class="fis-pdf" data-mid="${escHtml(m.id)}" data-pi="${idx}" checked style="width:auto" />
+          ${escHtml(etiket)}
+        </label>`;
+      }).join('')
+      : '<div class="hint" style="margin-left:22px">Bu donemde PDF yok (sadece kalem)</div>';
+
+    rows.push(`
+      <div class="subcard" style="margin-bottom:8px;background:var(--bg)">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+          <input type="checkbox" class="fis-muk" data-mid="${escHtml(m.id)}" ${pdfs.length ? 'checked' : ''} style="width:auto" ${pdfs.length ? '' : 'disabled'} />
+          ${escHtml(m.ad)} <span class="hint" style="margin:0;font-weight:400">${escHtml(m.vkn || '')} · ${kalemN} kalem · ${pdfs.length} PDF · ${key}</span>
+        </label>
+        ${kalemHtml}
+        ${pdfHtml}
+      </div>
+    `);
+  }
+
+  $('fisGosterOzet').textContent = rows.length
+    ? `Vergi donemi ${donem} (${key}) — sadece bu aya ait tahakkuklar. Sec → Gonder'e al.`
+    : `Vergi donemi ${donem} (${key}) icin bellekte tahakkuk yok. Once bu donemi secip Tumunu Sorgula.`;
+  list.innerHTML = rows.length
+    ? rows.join('')
+    : `<p class="hint">Secili donem: <b>${escHtml(donem)}</b> — sonuc yok. Ustten ayi secip sorgula, sonra tekrar Goster.</p>`;
+  panel.style.display = 'block';
+}
+
+$('gosterBtn').addEventListener('click', () => {
+  const panel = $('fisGosterPanel');
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+    return;
+  }
+  renderFisGoster();
+});
+
+$('fisGosterKapatBtn').addEventListener('click', () => {
+  $('fisGosterPanel').style.display = 'none';
+});
+
+$('fisGosterList').addEventListener('change', (e) => {
+  const muk = e.target.closest('.fis-muk');
+  if (muk) {
+    const mid = muk.getAttribute('data-mid');
+    $('fisGosterList').querySelectorAll(`.fis-pdf[data-mid="${mid}"]`).forEach((cb) => {
+      cb.checked = muk.checked;
+    });
+  }
+  const pdf = e.target.closest('.fis-pdf');
+  if (pdf) {
+    const mid = pdf.getAttribute('data-mid');
+    const all = [...$('fisGosterList').querySelectorAll(`.fis-pdf[data-mid="${mid}"]`)];
+    const mukCb = $('fisGosterList').querySelector(`.fis-muk[data-mid="${mid}"]`);
+    if (mukCb) mukCb.checked = all.some((c) => c.checked);
+  }
+});
+
+$('fisGonderGecBtn').addEventListener('click', () => {
+  const secili = [...$('fisGosterList').querySelectorAll('.fis-pdf:checked')];
+  if (!secili.length) {
+    showMsg('En az bir PDF sec.', 'hata');
+    return;
+  }
+  const mid = secili[0].getAttribute('data-mid');
+  const ayni = secili.filter((c) => c.getAttribute('data-mid') === mid);
+  const pdfs = ayni
+    .map((c) => state.fisGosterPaths[Number(c.getAttribute('data-pi'))])
+    .filter(Boolean);
+  if (secili.some((c) => c.getAttribute('data-mid') !== mid)) {
+    showMsg('Birden fazla mukellef secildi — ilk mukellefin PDF\'leri alindi.', 'info');
+  }
+  const { yil, ay } = seciliDonem();
+  persistFormToState();
+  state.aktifId = mid;
+  state.seciliPdfYollari = pdfs;
+  $('profilSec').value = mid;
+  formaYaz(aktif());
+  // Donem filtresiyle kalemleri yukle
+  const donemKayit = mukellefDonemKaydi(bellekKaydi(mid), yil, ay);
+  if (donemKayit) {
+    state.sonKalemler = (donemKayit.kalemler || []).filter((k) => (Number(k.tutar) || 0) > 0);
+    state.sonPdfDosyalari = pdfs;
+    renderKalemler(state.sonKalemler);
+  } else {
+    aktifBellektenYukle();
+    state.sonPdfDosyalari = pdfs;
+    state.seciliPdfYollari = pdfs;
+  }
+  $('tipTahakkuk').checked = true;
+  $('tipMakbuz').checked = false;
+  updateMetinLabel();
+  metniYenile().catch(() => {});
+  $('fisGosterPanel').style.display = 'none';
+  sekmeAc('islem');
+  showMsg(`${donemEtiketSecili()}: ${pdfs.length} PDF secildi.`, 'ok');
+});
+
+$('whatsappBtn').addEventListener('click', async () => {
+  const m = aktif();
+  if (!m) return;
+  if (state.makbuzDuzenleniyor) {
+    const ok = await makbuzUygula();
+    if (!ok) return;
+  }
+  $('whatsappBtn').disabled = true;
+  try {
+    // Duzenlenmis makbuz varsa onu kullan
+    if (seciliWhatsappTip() === 'makbuz' && state.sonMakbuz) {
+      const tel = String(m.telefon || '').trim();
+      if (!tel) {
+        showMsg('Telefon yok.', 'hata');
+        return;
+      }
+      const r = await api().makbuzGonder({ makbuz: state.sonMakbuz, telefon: tel });
+      showMsg(r.msg || (r.ok ? 'Tamam' : 'Hata'), r.ok ? 'ok' : 'hata');
+      return;
+    }
+    const r = await gonderBirMukellef(m, seciliWhatsappTip());
+    showMsg(r.msg, r.ok ? 'ok' : 'hata');
+  } finally {
+    $('whatsappBtn').disabled = false;
+  }
+});
+
+function renderWaState(s) {
+  const st = s || {};
+  const map = {
+    kapali: 'Kapali',
+    qr: 'Karekod hazir — telefonda okut',
+    baglaniyor: 'Baglaniyor / karekod bekleniyor...',
+    hazir: 'Hazir — tikla gonder',
+    hata: 'Hata',
+  };
+  $('waDurum').textContent = `Durum: ${map[st.status] || st.status || '—'}`
+    + (st.userName && st.status === 'hazir' ? ` (${st.userName})` : '')
+    + (st.hata ? ` — ${st.hata}` : '');
+  if (st.qrDataUrl) {
+    $('waQr').src = st.qrDataUrl;
+    $('waQr').style.display = 'block';
+    $('waQrYok').style.display = 'none';
+    try { $('waQrKutu').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+  } else {
+    $('waQr').style.display = 'none';
+    $('waQrYok').style.display = 'block';
+    $('waQrYok').textContent = st.status === 'hazir'
+      ? 'Bagli — karekod gerekmez'
+      : (st.status === 'baglaniyor'
+        ? 'Otomatik baglaniyor / karekod hazirlaniyor...'
+        : 'Oturum yoksa karekod burada cikar');
+  }
+}
+
+$('waBaglanBtn').addEventListener('click', async () => {
+  showMsg('WhatsApp oturumu baslatiliyor — karekod bekleniyor...', 'info');
+  $('waQrYok').textContent = 'Karekod hazirlaniyor, biraz bekle...';
+  $('waQrYok').style.display = 'block';
+  $('waQr').style.display = 'none';
+  $('waBaglanBtn').disabled = true;
+  try {
+    const r = await api().waStart();
+    renderWaState(r);
+    if (r.ok && r.status === 'hazir') showMsg('WhatsApp hazir (zaten bagli).', 'ok');
+    else if (r.ok && r.qrDataUrl) showMsg('Karekod geldi — telefonda okut.', 'ok');
+    else if (r.ok && (r.status === 'qr' || r.status === 'baglaniyor')) {
+      showMsg('Karekod bekleniyor. Sag tarafta cikmazsa 10 sn sonra tekrar bas.', 'info');
+    } else if (!r.ok) showMsg(r.msg || r.hata || 'WhatsApp baslatilamadi', 'hata');
+  } catch (e) {
+    showMsg(e.message || String(e), 'hata');
+  } finally {
+    $('waBaglanBtn').disabled = false;
+  }
+});
+
+$('waCikisBtn').addEventListener('click', async () => {
+  if (!confirm('WhatsApp oturumu kapatilsin mi?')) return;
+  const r = await api().waLogout();
+  renderWaState(r);
+  showMsg('WhatsApp oturumu kapatildi.', 'ok');
+});
+
+$('makbuzWpGonderBtn').addEventListener('click', async () => {
+  const m = aktif();
+  if (!m) {
+    showMsg('Once mukellef sec.', 'hata');
+    return;
+  }
+  if (!$('makbuzWrap').classList.contains('show') || !state.sonMakbuz) {
+    showMsg('Once Onizleme ile makbuz gorseli ac.', 'hata');
+    return;
+  }
+  if (state.makbuzDuzenleniyor) {
+    const ok = await makbuzUygula();
+    if (!ok) return;
+  }
+  const tel = String(m.telefon || '').trim();
+  if (!tel) {
+    showMsg('Bu mukellefin telefonu yok — Mukellef sekmesinden yaz.', 'hata');
+    return;
+  }
+  const btn = $('makbuzWpGonderBtn');
+  btn.disabled = true;
+  try {
+    showMsg(`Makbuz WhatsApp'a gonderiliyor: ${m.ad}…`, 'info');
+    const r = await api().makbuzGonder({ makbuz: state.sonMakbuz, telefon: tel });
+    showMsg(r.msg || (r.ok ? `Gonderildi: ${tel}` : 'Gonderilemedi'), r.ok ? 'ok' : 'hata');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('makbuzYazdirBtn').addEventListener('click', () => {
+  if (!$('makbuzWrap').classList.contains('show')) {
+    showMsg('Once Makbuz tipini sec ve bellekte kalem olsun.', 'hata');
+    return;
+  }
+  window.print();
+});
+
+init().catch((e) => showMsg(e.message || String(e), 'hata'));
+</script>
+</body>
+</html>

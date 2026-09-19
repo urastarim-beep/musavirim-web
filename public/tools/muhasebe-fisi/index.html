@@ -1,0 +1,685 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muhasebe Fişi Oluşturucu</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#131516;--sf:#1a1d1f;--sf2:#222628;--bd:#2e3234;--gold:#d4a843;--goldD:rgba(212,168,67,0.12);--tx:#e8e4df;--txD:#7a7670;--grn:#4caf7c;--red:#cf6659;--blu:#5b9bd5}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh}
+input,select{background:var(--sf2);border:1px solid var(--bd);border-radius:5px;color:var(--tx);padding:7px 10px;font-size:13px;outline:none;font-family:'IBM Plex Mono',monospace;width:100%;box-sizing:border-box}
+input:focus{border-color:var(--gold)}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+
+/* Firma Seçim Ekranı */
+.firma-screen{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.firma-box{width:520px;text-align:center}
+.firma-logo{font-size:42px;font-weight:800;color:var(--gold);letter-spacing:-2px;margin-bottom:2px}
+.firma-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.firma-sub{font-size:13px;color:var(--txD);margin-bottom:28px}
+.firma-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;text-align:left}
+.firma-card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all 0.2s}
+.firma-card:hover{border-color:var(--gold);background:var(--goldD)}
+.firma-card .name{font-size:15px;font-weight:600}
+.firma-card .info{font-size:11px;color:var(--txD)}
+.firma-card .arrow{color:var(--gold);font-size:18px}
+.firma-card-del{background:none;border:none;color:var(--red);font-size:14px;padding:4px 8px;border-radius:4px;opacity:0.5}
+.firma-card-del:hover{opacity:1;background:rgba(207,102,89,0.15)}
+.firma-add{background:var(--sf);border:2px dashed var(--bd);border-radius:10px;padding:14px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;color:var(--txD)}
+.firma-add:hover{border-color:var(--gold);color:var(--gold)}
+.firma-new-form{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:18px;text-align:left;margin-top:12px}
+.firma-new-form label{font-size:11px;color:var(--txD);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:4px}
+.firma-new-form input{margin-bottom:10px}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#a07c1e);border:none;color:#1a1814;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:700}
+.btn-gold:hover{filter:brightness(1.1)}
+.btn-ghost{background:none;border:1px solid var(--bd);color:var(--txD);padding:8px 16px;border-radius:6px;font-size:13px}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Header */
+.header{background:var(--sf);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.logo{font-size:18px;font-weight:800;color:var(--gold)}
+.title{font-size:14px;font-weight:600}
+.badge{font-size:11px;color:var(--txD);background:var(--sf2);padding:2px 8px;border-radius:10px}
+.firma-badge{font-size:11px;color:var(--gold);background:var(--goldD);padding:2px 10px;border-radius:10px;font-weight:600}
+.pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd);background:transparent;color:var(--txD);transition:all 0.2s}
+.pill.active{border-color:var(--gold);background:var(--goldD);color:var(--gold)}
+.pill:hover{border-color:var(--gold)}
+.btn-export{background:linear-gradient(135deg,var(--gold),#a07c1e);border:none;color:#1a1814;padding:7px 20px;border-radius:6px;font-size:13px;font-weight:700}
+.btn-save{background:var(--grn);border:none;color:#fff;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600}
+.btn-save:hover{filter:brightness(1.1)}
+
+/* Container */
+.container{max-width:1100px;margin:0 auto;padding:20px 16px}
+.section{background:var(--sf);border:1px solid var(--bd);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.section-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;user-select:none}
+.section-header:hover{background:rgba(255,255,255,0.02)}
+.section-body{padding:0 16px 16px;border-top:1px solid var(--bd)}
+.section-desc{font-size:11px;color:var(--txD);margin:8px 0 10px}
+.grid-4{display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px}
+.grid-3{display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-sabit{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px}
+.col-head{font-size:10px;color:var(--txD);text-transform:uppercase;letter-spacing:0.8px}
+.src-label{font-size:11px;color:var(--gold);font-family:'IBM Plex Mono',monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.field-label{font-size:10px;color:var(--txD);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:4px}
+.inp-sm{font-size:12px!important;padding:5px 8px!important}
+
+/* Summary & Preview */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:12px 14px}
+.stat-label{font-size:10px;color:var(--txD);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.stat-val{font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.fis-card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;margin-bottom:8px}
+.fis-summary{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;list-style:none}
+.fis-summary::-webkit-details-marker{display:none}
+.fis-no{font-size:11px;font-family:monospace;color:var(--gold);background:var(--goldD);padding:1px 7px;border-radius:4px}
+.fis-date{font-size:11px;color:var(--txD)}
+.fis-total{font-size:13px;font-family:monospace;color:var(--grn);font-weight:600}
+.fis-body{padding:8px 14px 14px;border-top:1px solid var(--bd)}
+.fis-table{width:100%;border-collapse:collapse;font-size:11px}
+.fis-table th{text-align:left;padding:4px 6px;color:var(--txD);font-weight:500;font-size:10px;border-bottom:1px solid var(--bd)}
+.fis-table th.right{text-align:right}
+.fis-table td{padding:4px 6px}
+.fis-table .mono{font-family:'IBM Plex Mono',monospace;font-size:11px}
+.row-borc{background:rgba(76,175,124,0.04)}
+.row-alacak{background:rgba(207,102,89,0.04)}
+.c-gold{color:var(--gold)}.c-grn{color:var(--grn)}.c-red{color:var(--red)}.c-dim{color:var(--txD)}
+.bold{font-weight:700}.right{text-align:right}
+.arrow{font-size:12px;color:var(--txD);transition:transform 0.2s}.arrow.open{transform:rotate(180deg)}
+.export-msg{font-size:11px;font-weight:600}
+.save-toast{position:fixed;bottom:24px;right:24px;background:var(--grn);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:100;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.save-toast.show{opacity:1}
+
+/* Upload */
+.upload-area{margin-top:20px}
+.drop-zone{border:2px dashed var(--bd);border-radius:12px;padding:40px 24px;cursor:pointer;background:var(--sf);transition:border-color 0.3s;text-align:center}
+.drop-zone:hover{border-color:var(--gold)}
+</style>
+</head>
+<body>
+<script>
+try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'); } catch (e) { window.__MUSAVIRIM_CLOUD__ = {}; }
+</script>
+<script src="/tools/cloud-bridge.js"></script>
+
+<!-- TOAST -->
+<div class="save-toast" id="saveToast">✓ Ayarlar kaydedildi!</div>
+
+<!-- 1. FİRMA SEÇİM EKRANI -->
+<div id="firmaScreen" class="firma-screen">
+  <div class="firma-box">
+    <div class="firma-logo">MF</div>
+    <div class="firma-title">Muhasebe Fişi Oluşturucu</div>
+    <div class="firma-sub">Firma seçin veya yeni firma ekleyin</div>
+    <div class="firma-list" id="firmaList"></div>
+    <div class="firma-add" id="firmaAddBtn" onclick="showNewFirmaForm()">+ Yeni Firma Ekle</div>
+    <div class="firma-new-form hidden" id="firmaNewForm">
+      <label>Firma Adı</label>
+      <input id="newFirmaAdi" placeholder="Örn: Total Akaryakıt">
+      <label>Açıklama (opsiyonel)</label>
+      <input id="newFirmaAciklama" placeholder="Örn: 4 istasyon">
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn-gold" onclick="createFirma()">Oluştur</button>
+        <button class="btn-ghost" onclick="hideNewFirmaForm()">İptal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. ANA EKRAN -->
+<div id="mainScreen" class="hidden">
+  <div class="header">
+    <div class="header-left">
+      <span class="logo">MF</span>
+      <span class="title">Muhasebe Fişi Oluşturucu</span>
+      <span class="firma-badge" id="firmaLabel"></span>
+      <span class="badge" id="faturaCount">0 fatura</span>
+    </div>
+    <div class="header-right">
+      <span class="export-msg" id="exportMsg"></span>
+      <button class="pill" onclick="goToFirmaScreen()" style="font-size:11px">↩ Firma Değiştir</button>
+      <button class="pill" onclick="resetFile()" style="font-size:11px">📄 Yeni Dosya</button>
+      <button class="pill active" id="btnAyarlar" onclick="showTab('config')">Ayarlar</button>
+      <button class="pill" id="btnOnizleme" onclick="showTab('preview')">Önizleme</button>
+      <button class="btn-save" onclick="saveProfile()">💾 Kaydet</button>
+      <button class="btn-export" onclick="doExport()">⬇ Excel İndir</button>
+    </div>
+  </div>
+  <div class="container">
+    <!-- UPLOAD AREA (dosya yüklenmediğinde) -->
+    <div id="uploadArea" class="upload-area">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept=".xls,.xlsx" style="display:none">
+        <div style="font-size:40px;margin-bottom:8px;opacity:0.5">📊</div>
+        <div style="font-size:15px;font-weight:600">Fatura Listesi Excel Dosyasını Yükle</div>
+        <div style="font-size:12px;color:var(--txD);margin-top:6px">.xls veya .xlsx — sürükle-bırak veya tıkla</div>
+      </div>
+    </div>
+
+    <!-- CONFIG TAB -->
+    <div id="configTab" class="hidden">
+      <div class="section" id="secStok">
+        <div class="section-header" onclick="toggleSection('secStok')">
+          <div style="display:flex;align-items:center;gap:8px"><span>📦</span><span style="font-size:14px;font-weight:600">Stok Eşleştirmeleri</span></div>
+          <span class="arrow open" id="secStok-arrow">▾</span>
+        </div>
+        <div class="section-body" id="secStok-body">
+          <div class="section-desc">Kaynak stok kodu → Stok adı + Alacak hesap kodu eşleştirmesi</div>
+          <div class="grid-4" style="margin-bottom:8px"><span class="col-head">Kaynak Kod</span><span class="col-head">Stok Adı (Fişe yazılacak)</span><span class="col-head">Hesap Kodu (600.xx)</span><span class="col-head">Hesap Adı</span></div>
+          <div id="stokRows"></div>
+        </div>
+      </div>
+      <div class="section" id="secCari">
+        <div class="section-header" onclick="toggleSection('secCari')">
+          <div style="display:flex;align-items:center;gap:8px"><span>🏢</span><span style="font-size:14px;font-weight:600">Cari Hesap Eşleştirmeleri (Borç)</span></div>
+          <span class="arrow open" id="secCari-arrow">▾</span>
+        </div>
+        <div class="section-body" id="secCari-body">
+          <div class="section-desc">Cari kodları → 120 Alıcılar borç hesap kodu</div>
+          <div class="grid-3" style="margin-bottom:8px"><span class="col-head">Cari Kod</span><span class="col-head">Hesap Kodu (120.xx)</span><span class="col-head">Hesap Adı</span></div>
+          <div id="cariRows"></div>
+        </div>
+      </div>
+      <div class="section" id="secKdv">
+        <div class="section-header" onclick="toggleSection('secKdv')">
+          <div style="display:flex;align-items:center;gap:8px"><span>💰</span><span style="font-size:14px;font-weight:600">KDV Hesap Kodu</span></div>
+          <span class="arrow open" id="secKdv-arrow">▾</span>
+        </div>
+        <div class="section-body" id="secKdv-body">
+          <div class="section-desc">Tüm fişlerin KDV alacak satırına yazılacak hesap kodu ve adı</div>
+          <div class="grid-2">
+            <div><label class="field-label">KDV Hesap Kodu</label><input id="kdvKod" value="391.01"></div>
+            <div><label class="field-label">KDV Hesap Adı</label><input id="kdvAdi" value="Hesaplanan KDV"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section" id="secSabit">
+        <div class="section-header" onclick="toggleSection('secSabit')">
+          <div style="display:flex;align-items:center;gap:8px"><span>⚙️</span><span style="font-size:14px;font-weight:600">Sabit Alanlar</span></div>
+          <span class="arrow open" id="secSabit-arrow">▾</span>
+        </div>
+        <div class="section-body" id="secSabit-body">
+          <div class="section-desc">Tüm fiş satırlarına uygulanacak sabit değerler</div>
+          <div class="grid-sabit">
+            <div><label class="field-label">Seri</label><input id="sabitSeri" placeholder="Boş bırakılabilir"></div>
+            <div><label class="field-label">Belge Türü</label><input id="sabitBelgeTuru" value="Satış Faturası"></div>
+            <div><label class="field-label">B.T.A.</label><input id="sabitBTA" value="B"></div>
+            <div><label class="field-label">Ödeme Türü</label><input id="sabitOdemeTuru" value="Açık Hesap"></div>
+            <div><label class="field-label">VKN / TCKN</label><input id="sabitVkn" placeholder="Boş bırakılabilir"></div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="section-desc">Açıklama şablonu — {unvan} ve {fno} otomatik değiştirilir</div>
+            <input id="sabitAciklama" value="{unvan} - {fno} nolu Z Raporu">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- PREVIEW TAB -->
+    <div id="previewTab" class="hidden">
+      <div class="summary" id="summaryCards"></div>
+      <input id="filterInput" placeholder="Fiş no, ünvan veya tarih ara..." style="margin-bottom:14px;padding:10px 14px;font-size:13px;border-radius:8px" oninput="renderPreview()">
+      <div id="fisCards"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let currentFirmaId = null;
+let faturalar = [];
+let bulunanStoklar = [];
+let bulunanCariler = {};
+let stokMap = {};
+let cariMap = {};
+let fileLoaded = false;
+
+const DEFAULT_STOK = {
+  "MOTORİN":{stokAdi:"TOTAL 003 - MOTORIN (EXCELLIUM)",hesapKodu:"600.01.01.03",hesapAdi:"Motorin (Excellium)"},
+  "MOTORIN-2":{stokAdi:"TOTAL 004 - MOTORİN-2",hesapKodu:"600.01.01.04",hesapAdi:"Motorin-2"},
+  "KUR95":{stokAdi:"TOTAL 002 - KB 95 OKTAN",hesapKodu:"600.01.01.02",hesapAdi:"KB 95 Oktan"},
+  "LPG":{stokAdi:"TOTAL 001 - LPG",hesapKodu:"600.01.01.01",hesapAdi:"LPG"},
+  "ZİPPO00000834":{stokAdi:"ZİPPO00000834",hesapKodu:"600.02.01.01",hesapAdi:"Diğer Satışlar"},
+};
+const DEFAULT_CARI = {
+  "TOTAL-1":{hesapKodu:"120.01.001",hesapAdi:"DK 22090102"},
+  "TOTAL-2":{hesapKodu:"120.01.002",hesapAdi:"DK 22090289"},
+  "TOTAL-3":{hesapKodu:"120.01.003",hesapAdi:"DK 22090212"},
+  "TOTAL-4":{hesapKodu:"120.01.004",hesapAdi:"DK 22090247 (LPG)"},
+};
+
+// ═══════════════════════════════════════
+// STORAGE - Firma Profilleri
+// ═══════════════════════════════════════
+function getFirmalar() {
+  try { return JSON.parse(localStorage.getItem("mf_firmalar") || "{}"); } catch { return {}; }
+}
+function saveFirmalar(data) { localStorage.setItem("mf_firmalar", JSON.stringify(data)); }
+
+function getFirmaProfile(id) {
+  const firmalar = getFirmalar();
+  return firmalar[id]?.profile || null;
+}
+
+function saveFirmaProfile(id) {
+  const firmalar = getFirmalar();
+  if (!firmalar[id]) return;
+  
+  // Stok ve cari map'i inputlardan güncelle
+  syncMapsFromInputs();
+  
+  firmalar[id].profile = {
+    stokMap: JSON.parse(JSON.stringify(stokMap)),
+    cariMap: JSON.parse(JSON.stringify(cariMap)),
+    sabit: {
+      seri: document.getElementById("sabitSeri").value,
+      belgeTuru: document.getElementById("sabitBelgeTuru").value,
+      bta: document.getElementById("sabitBTA").value,
+      odemeTuru: document.getElementById("sabitOdemeTuru").value,
+      vknTckn: document.getElementById("sabitVkn").value,
+      kdvKod: document.getElementById("kdvKod").value,
+      kdvAdi: document.getElementById("kdvAdi").value,
+      aciklama: document.getElementById("sabitAciklama").value,
+    },
+    lastSaved: new Date().toLocaleString("tr-TR"),
+  };
+  saveFirmalar(firmalar);
+}
+
+function loadFirmaProfile(id) {
+  const profile = getFirmaProfile(id);
+  if (!profile) return;
+  
+  if (profile.stokMap) stokMap = { ...DEFAULT_STOK, ...profile.stokMap };
+  if (profile.cariMap) cariMap = { ...DEFAULT_CARI, ...profile.cariMap };
+  
+  if (profile.sabit) {
+    const s = profile.sabit;
+    document.getElementById("sabitSeri").value = s.seri || "";
+    document.getElementById("sabitBelgeTuru").value = s.belgeTuru || "Satış Faturası";
+    document.getElementById("sabitBTA").value = s.bta || "B";
+    document.getElementById("sabitOdemeTuru").value = s.odemeTuru || "Açık Hesap";
+    document.getElementById("sabitVkn").value = s.vknTckn || "";
+    document.getElementById("kdvKod").value = s.kdvKod || "391.01";
+    document.getElementById("kdvAdi").value = s.kdvAdi || "Hesaplanan KDV";
+    document.getElementById("sabitAciklama").value = s.aciklama || "{unvan} - {fno} nolu Z Raporu";
+  }
+}
+
+function syncMapsFromInputs() {
+  document.querySelectorAll("[data-stok-key]").forEach(inp => {
+    const sk = inp.dataset.stokKey, field = inp.dataset.stokField;
+    if (!stokMap[sk]) stokMap[sk] = { stokAdi: sk, hesapKodu: "", hesapAdi: "" };
+    stokMap[sk][field] = inp.value;
+  });
+  document.querySelectorAll("[data-cari-key]").forEach(inp => {
+    const ck = inp.dataset.cariKey, field = inp.dataset.cariField;
+    if (!cariMap[ck]) cariMap[ck] = { hesapKodu: "", hesapAdi: "" };
+    cariMap[ck][field] = inp.value;
+  });
+}
+
+// ═══════════════════════════════════════
+// FİRMA EKRANI
+// ═══════════════════════════════════════
+function renderFirmaList() {
+  const firmalar = getFirmalar();
+  const list = document.getElementById("firmaList");
+  const keys = Object.keys(firmalar);
+  
+  if (keys.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--txD);font-size:13px;padding:16px">Henüz firma eklenmemiş</div>';
+    return;
+  }
+  
+  list.innerHTML = keys.map(id => {
+    const f = firmalar[id];
+    const lastSaved = f.profile?.lastSaved || "Henüz kaydedilmedi";
+    return `<div class="firma-card" onclick="selectFirma('${id}')">
+      <div>
+        <div class="name">${f.name}</div>
+        <div class="info">${f.desc || ""} · Son kayıt: ${lastSaved}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="firma-card-del" onclick="event.stopPropagation();deleteFirma('${id}')" title="Firmayı sil">✕</button>
+        <span class="arrow" style="color:var(--gold);font-size:18px">→</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function showNewFirmaForm() {
+  document.getElementById("firmaNewForm").classList.remove("hidden");
+  document.getElementById("firmaAddBtn").classList.add("hidden");
+  document.getElementById("newFirmaAdi").focus();
+}
+function hideNewFirmaForm() {
+  document.getElementById("firmaNewForm").classList.add("hidden");
+  document.getElementById("firmaAddBtn").classList.remove("hidden");
+}
+
+function createFirma() {
+  const name = document.getElementById("newFirmaAdi").value.trim();
+  if (!name) { alert("Firma adı gerekli!"); return; }
+  const desc = document.getElementById("newFirmaAciklama").value.trim();
+  const id = "firma_" + Date.now();
+  const firmalar = getFirmalar();
+  firmalar[id] = { name, desc, profile: null };
+  saveFirmalar(firmalar);
+  document.getElementById("newFirmaAdi").value = "";
+  document.getElementById("newFirmaAciklama").value = "";
+  hideNewFirmaForm();
+  renderFirmaList();
+}
+
+function deleteFirma(id) {
+  const firmalar = getFirmalar();
+  if (!confirm(`"${firmalar[id]?.name}" firmasını silmek istediğinize emin misiniz?`)) return;
+  delete firmalar[id];
+  saveFirmalar(firmalar);
+  renderFirmaList();
+}
+
+function selectFirma(id) {
+  currentFirmaId = id;
+  const firmalar = getFirmalar();
+  document.getElementById("firmaLabel").textContent = firmalar[id].name;
+  
+  // Varsayılan değerleri yükle, sonra kaydedilmiş profili üzerine yaz
+  stokMap = JSON.parse(JSON.stringify(DEFAULT_STOK));
+  cariMap = JSON.parse(JSON.stringify(DEFAULT_CARI));
+  loadFirmaProfile(id);
+  
+  document.getElementById("firmaScreen").classList.add("hidden");
+  document.getElementById("mainScreen").classList.remove("hidden");
+  
+  // Dosya henüz yüklenmedi
+  fileLoaded = false;
+  document.getElementById("uploadArea").classList.remove("hidden");
+  document.getElementById("configTab").classList.add("hidden");
+  document.getElementById("previewTab").classList.add("hidden");
+  document.getElementById("faturaCount").textContent = "0 fatura";
+}
+
+function goToFirmaScreen() {
+  document.getElementById("mainScreen").classList.add("hidden");
+  document.getElementById("firmaScreen").classList.remove("hidden");
+  faturalar = [];
+  fileLoaded = false;
+  renderFirmaList();
+}
+
+// ═══════════════════════════════════════
+// KAYDET
+// ═══════════════════════════════════════
+function saveProfile() {
+  if (!currentFirmaId) return;
+  saveFirmaProfile(currentFirmaId);
+  const toast = document.getElementById("saveToast");
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2000);
+}
+
+// ═══════════════════════════════════════
+// YARDIMCILAR
+// ═══════════════════════════════════════
+const fmt = (v) => { const n = typeof v==="number"?v:parseFloat(v); return isNaN(n)?"0,00":n.toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2}); };
+const fmtDate = (v) => { if(!v)return""; if(v instanceof Date)return v.toLocaleDateString("tr-TR"); try{const d=new Date(typeof v==="string"?v.split(" ")[0]:v);return isNaN(d.getTime())?String(v):d.toLocaleDateString("tr-TR");}catch{return String(v);} };
+function safeNum(v) { if(typeof v==="number")return v; if(typeof v==="string"){const s=v.trim();if(s.includes(",")&&s.includes("."))return parseFloat(s.replace(/\./g,"").replace(",","."));if(s.includes(","))return parseFloat(s.replace(",","."));return parseFloat(s);}return 0; }
+function getAciklama(unvan,fno){const tpl=document.getElementById("sabitAciklama").value||"{unvan} - {fno} nolu Z Raporu";return tpl.replace("{unvan}",unvan).replace("{fno}",fno);}
+
+// ═══════════════════════════════════════
+// DOSYA YÜKLEME
+// ═══════════════════════════════════════
+document.getElementById("dropZone").addEventListener("dragover",(e)=>{e.preventDefault();e.currentTarget.style.borderColor="var(--gold)";});
+document.getElementById("dropZone").addEventListener("dragleave",(e)=>{e.currentTarget.style.borderColor="var(--bd)";});
+document.getElementById("dropZone").addEventListener("drop",(e)=>{e.preventDefault();e.currentTarget.style.borderColor="var(--bd)";handleFile(e.dataTransfer.files[0]);});
+document.getElementById("fileInput").addEventListener("change",(e)=>handleFile(e.target.files[0]));
+
+function handleFile(file) {
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{parseExcel(e.target.result);}catch(err){alert("Excel okunamadı: "+err.message);console.error(err);return;}
+    fileLoaded=true;
+    document.getElementById("uploadArea").classList.add("hidden");
+    document.getElementById("configTab").classList.remove("hidden");
+    document.getElementById("faturaCount").textContent=faturalar.length+" fatura";
+    renderStokRows();
+    renderCariRows();
+    showTab("config");
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetFile(){
+  faturalar=[];fileLoaded=false;
+  document.getElementById("uploadArea").classList.remove("hidden");
+  document.getElementById("configTab").classList.add("hidden");
+  document.getElementById("previewTab").classList.add("hidden");
+  document.getElementById("fileInput").value="";
+  document.getElementById("faturaCount").textContent="0 fatura";
+  document.getElementById("btnAyarlar").classList.add("active");
+  document.getElementById("btnOnizleme").classList.remove("active");
+}
+
+function normalizeStr(s){
+  return String(s||"").trim().toLowerCase()
+    .replace(/i̇/g,"i").replace(/ı/g,"i").replace(/ğ/g,"g")
+    .replace(/ü/g,"u").replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c");
+}
+
+function parseExcel(buf) {
+  // XLS (Composite Document) ve XLSX her ikisini de destekle
+  let wb;
+  try {
+    wb=XLSX.read(buf,{type:"array",cellDates:true});
+  } catch(e) {
+    wb=XLSX.read(buf,{type:"array",cellDates:true,bookVBA:false});
+  }
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const allRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+  
+  // Header satırını bul — tarih VEYA fatura VEYA stok içeren ilk satır
+  let headerIdx=-1;
+  for(let i=0;i<Math.min(25,allRows.length);i++){
+    const row=allRows[i].map(c=>normalizeStr(c));
+    const hasTarih=row.some(c=>c.includes("tarih")||c.includes("date"));
+    const hasFatura=row.some(c=>c.includes("fatura")||c.includes("belge")||c.includes("no"));
+    const hasStok=row.some(c=>c.includes("stok")||c.includes("urun")||c.includes("hizmet")||c.includes("malzeme")||c.includes("aciklama"));
+    // En az 2 koşul sağlanıyorsa header kabul et
+    if((hasTarih?1:0)+(hasFatura?1:0)+(hasStok?1:0)>=2){headerIdx=i;break;}
+  }
+  // Yine bulunamazsa: en fazla sütun içeren ilk dolu satırı al
+  if(headerIdx===-1){
+    let maxCols=0;
+    for(let i=0;i<Math.min(15,allRows.length);i++){
+      const filled=allRows[i].filter(c=>String(c||"").trim()!=="").length;
+      if(filled>maxCols){maxCols=filled;headerIdx=i;}
+    }
+  }
+  if(headerIdx===-1)headerIdx=0;
+
+  const hdr=allRows[headerIdx].map(c=>normalizeStr(c));
+  const colMap={};
+  hdr.forEach((h,i)=>{
+    if(h.includes("tarih")||h.includes("date"))colMap.tarih=colMap.tarih??i;
+    else if(h.includes("fatura")||h.includes("belge no")||h.includes("belge_no")||(h.includes("no")&&h.length<=6))colMap.fno=colMap.fno??i;
+    else if(h.includes("cari kod")||h==="cari"||h.includes("cari_kod")||h.includes("musterikod")||h.includes("musteri kod"))colMap.cari=colMap.cari??i;
+    else if(h.includes("unvan")||h.includes("nvan")||h.includes("musteri ad")||h.includes("firma ad"))colMap.unvan=colMap.unvan??i;
+    else if(h.includes("stok")||h.includes("urun")||h.includes("hizmet")||h.includes("malzeme"))colMap.stok=colMap.stok??i;
+    else if(h.includes("miktar")||h.includes("qty")||h.includes("adet"))colMap.miktar=colMap.miktar??i;
+    else if(h.includes("birim")&&!h.includes("fiyat"))colMap.birim=colMap.birim??i;
+    else if((h.includes("kdv")&&h.includes("hari"))||(h.includes("kdvsiz"))||(h.includes("net tutar")))colMap.kdvHaric=colMap.kdvHaric??i;
+    else if((h.includes("kdv")&&(h.includes("tutar")||h.includes("miktar")))||h==="kdv")colMap.kdv=colMap.kdv??i;
+    else if(h.includes("toplam")||h.includes("genel")||h.includes("brut"))colMap.toplam=colMap.toplam??i;
+  });
+
+  // colMap eksiklerini pozisyon sırasıyla güvenli fallback
+  if(colMap.tarih===undefined)colMap.tarih=0;
+  if(colMap.fno===undefined)colMap.fno=1;
+  if(colMap.cari===undefined)colMap.cari=2;
+  if(colMap.unvan===undefined)colMap.unvan=3;
+  if(colMap.stok===undefined)colMap.stok=4;
+  if(colMap.miktar===undefined)colMap.miktar=5;
+  if(colMap.kdvHaric===undefined)colMap.kdvHaric=6;
+  if(colMap.kdv===undefined)colMap.kdv=7;
+  if(colMap.toplam===undefined)colMap.toplam=8;
+
+  const data=allRows.slice(headerIdx+1).filter(r=>{
+    const tarih=r[colMap.tarih];const fno=r[colMap.fno];
+    return tarih&&fno&&String(fno).trim()!=="";
+  });
+
+  const fatMap={};const stokSet=new Set();
+  bulunanStoklar=[];bulunanCariler={};
+
+  // Gruplama anahtarı için tarih normalizasyonu (Date, Türkçe string, ISO string hepsi)
+  const tarihKey=(t)=>{
+    if(!t)return"";
+    if(t instanceof Date)return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    const s=String(t).trim();
+    // "31.03.2026" -> "2026-03-31"
+    const m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+    if(m){let y=m[3];if(y.length===2)y="20"+y;return y+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");}
+    return s;
+  };
+
+  data.forEach(r=>{
+    const fno=String(r[colMap.fno]).trim();
+    const cari=String(r[colMap.cari]||"").trim();
+    const unvan=String(r[colMap.unvan]||"").trim();
+    const stok=String(r[colMap.stok]||"").trim();
+    if(!stok)return;
+    stokSet.add(stok);
+    if(cari&&!bulunanCariler[cari])bulunanCariler[cari]=unvan;
+    // Anahtar: fno + tarih (aynı fno farklı günde = ayrı fiş)
+    const key=fno+"|"+tarihKey(r[colMap.tarih]);
+    if(!fatMap[key])fatMap[key]={tarih:r[colMap.tarih],fno,cari,unvan,kalemler:[]};
+    fatMap[key].kalemler.push({stok,miktar:safeNum(r[colMap.miktar]),birim:String(r[colMap.birim]||"").trim(),kdvHaric:safeNum(r[colMap.kdvHaric]),kdv:safeNum(r[colMap.kdv]),toplam:safeNum(r[colMap.toplam])});
+  });
+
+  faturalar=Object.values(fatMap);
+  bulunanStoklar=[...stokSet];
+  bulunanStoklar.forEach(sk=>{if(!stokMap[sk])stokMap[sk]={stokAdi:sk,hesapKodu:"",hesapAdi:""};});
+  Object.entries(bulunanCariler).forEach(([k,v])=>{if(!cariMap[k])cariMap[k]={hesapKodu:"",hesapAdi:v};});
+}
+
+// ═══════════════════════════════════════
+// RENDER CONFIG
+// ═══════════════════════════════════════
+function renderStokRows(){
+  document.getElementById("stokRows").innerHTML=bulunanStoklar.map(sk=>{
+    const m=stokMap[sk]||{};
+    return `<div class="grid-4">
+      <span class="src-label" title="${sk}">${sk}</span>
+      <input class="inp-sm" value="${m.stokAdi||""}" placeholder="Stok adı" data-stok-key="${sk}" data-stok-field="stokAdi" onchange="stokMap['${sk}'].stokAdi=this.value">
+      <input class="inp-sm" value="${m.hesapKodu||""}" placeholder="600.01.01.xx" data-stok-key="${sk}" data-stok-field="hesapKodu" onchange="stokMap['${sk}'].hesapKodu=this.value">
+      <input class="inp-sm" value="${m.hesapAdi||""}" placeholder="Hesap adı" data-stok-key="${sk}" data-stok-field="hesapAdi" onchange="stokMap['${sk}'].hesapAdi=this.value">
+    </div>`;
+  }).join("");
+}
+
+function renderCariRows(){
+  document.getElementById("cariRows").innerHTML=Object.keys(bulunanCariler).map(ck=>{
+    const m=cariMap[ck]||{};
+    return `<div class="grid-3">
+      <span class="src-label">${ck}</span>
+      <input class="inp-sm" value="${m.hesapKodu||""}" placeholder="120.01.xxx" data-cari-key="${ck}" data-cari-field="hesapKodu" onchange="cariMap['${ck}'].hesapKodu=this.value">
+      <input class="inp-sm" value="${m.hesapAdi||""}" placeholder="Hesap adı" data-cari-key="${ck}" data-cari-field="hesapAdi" onchange="cariMap['${ck}'].hesapAdi=this.value">
+    </div>`;
+  }).join("");
+}
+
+function toggleSection(id){
+  const body=document.getElementById(id+"-body");const arrow=document.getElementById(id+"-arrow");
+  if(body.style.display==="none"){body.style.display="";arrow.classList.add("open");}
+  else{body.style.display="none";arrow.classList.remove("open");}
+}
+
+function showTab(tab){
+  if(!fileLoaded)return;
+  document.getElementById("configTab").classList.toggle("hidden",tab!=="config");
+  document.getElementById("previewTab").classList.toggle("hidden",tab!=="preview");
+  document.getElementById("btnAyarlar").classList.toggle("active",tab==="config");
+  document.getElementById("btnOnizleme").classList.toggle("active",tab==="preview");
+  if(tab==="preview")renderPreview();
+}
+
+// ═══════════════════════════════════════
+// PREVIEW
+// ═══════════════════════════════════════
+function renderPreview(){
+  syncMapsFromInputs();
+  const q=(document.getElementById("filterInput").value||"").toLowerCase();
+  const btaVal=document.getElementById("sabitBTA").value;
+  const list=faturalar.filter(f=>{if(!q)return true;return f.fno.toLowerCase().includes(q)||f.unvan.toLowerCase().includes(q)||fmtDate(f.tarih).includes(q);}).map(f=>({...f,topGenel:f.kalemler.reduce((s,k)=>s+k.toplam,0),topKdv:f.kalemler.reduce((s,k)=>s+k.kdv,0),topKdvHaric:f.kalemler.reduce((s,k)=>s+k.kdvHaric,0)}));
+  const totBorc=list.reduce((s,f)=>s+f.topGenel,0);
+  const totAlacak=list.reduce((s,f)=>s+f.topKdvHaric+f.topKdv,0);
+  const totKdv=list.reduce((s,f)=>s+f.topKdv,0);
+
+  document.getElementById("summaryCards").innerHTML=[
+    {l:"Toplam Fiş",v:list.length,c:"gold"},{l:"Toplam Borç",v:fmt(totBorc)+" ₺",c:"grn"},
+    {l:"Toplam Alacak",v:fmt(totAlacak)+" ₺",c:"red"},{l:"Toplam KDV",v:fmt(totKdv)+" ₺",c:"blu"},
+  ].map(x=>`<div class="stat-card"><div class="stat-label">${x.l}</div><div class="stat-val" style="color:var(--${x.c})">${x.v}</div></div>`).join("");
+
+  const kdvKod=document.getElementById("kdvKod").value;const kdvAdi=document.getElementById("kdvAdi").value;
+
+  document.getElementById("fisCards").innerHTML=list.slice(0,50).map((f,i)=>{
+    const cari=cariMap[f.cari]||{hesapKodu:"?",hesapAdi:f.unvan};
+    const aciklama=getAciklama(f.unvan,f.fno);
+    let rows=`<tr class="row-borc"><td class="mono c-gold">${cari.hesapKodu} - ${cari.hesapAdi}</td><td class="c-grn bold">${btaVal}</td><td>—</td><td class="c-dim">${aciklama}</td><td class="right mono c-grn">${fmt(f.topGenel)}</td><td class="right c-dim">—</td></tr>`;
+    f.kalemler.forEach(k=>{const sm=stokMap[k.stok]||{stokAdi:k.stok,hesapKodu:"?",hesapAdi:k.stok};rows+=`<tr class="row-alacak"><td class="mono c-gold">${sm.hesapKodu} - ${sm.hesapAdi}</td><td class="c-red bold">${btaVal}</td><td>${sm.stokAdi}</td><td class="c-dim">${aciklama}</td><td class="right c-dim">—</td><td class="right mono c-red">${fmt(k.kdvHaric)}</td></tr>`;});
+    if(f.topKdv>0){rows+=`<tr class="row-alacak"><td class="mono c-gold">${kdvKod} - ${kdvAdi}</td><td class="c-red bold">${btaVal}</td><td>—</td><td class="c-dim">${aciklama}</td><td class="right c-dim">—</td><td class="right mono c-red">${fmt(f.topKdv)}</td></tr>`;}
+    return `<details class="fis-card"><summary class="fis-summary"><div style="display:flex;gap:12px;align-items:center"><span class="fis-no">${f.fno}</span><span class="fis-date">${fmtDate(f.tarih)}</span><span>${f.unvan}</span></div><span class="fis-total">${fmt(f.topGenel)} ₺</span></summary><div class="fis-body"><table class="fis-table"><thead><tr><th>Hesap</th><th>B.T.A.</th><th>Stok</th><th>Açıklama</th><th class="right">Borç</th><th class="right">Alacak</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  }).join("")+(list.length>50?'<div style="text-align:center;padding:16px;color:var(--txD);font-size:12px">İlk 50 fiş gösteriliyor.</div>':"");
+}
+
+// ═══════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════
+function doExport(){
+  try{
+    syncMapsFromInputs();
+    const sabit={seri:document.getElementById("sabitSeri").value,belgeTuru:document.getElementById("sabitBelgeTuru").value,bta:document.getElementById("sabitBTA").value,odemeTuru:document.getElementById("sabitOdemeTuru").value,vknTckn:document.getElementById("sabitVkn").value,kdvKod:document.getElementById("kdvKod").value,kdvAdi:document.getElementById("kdvAdi").value};
+    const wb=XLSX.utils.book_new();
+    const headers=["Hesap","Belge Tarihi","Seri","Belge No","Belge Türü","B.T.A.","Stok","Miktar","VKN/TCKN","Açıklama","Borç","Alacak","Ödeme Türü"];
+    const wsData=[headers];
+    const sorted=[...faturalar].sort((a,b)=>String(a.tarih).localeCompare(String(b.tarih)));
+
+    sorted.forEach(f=>{
+      const cari=cariMap[f.cari]||{hesapKodu:f.cari,hesapAdi:f.unvan};
+      const topKdv=f.kalemler.reduce((s,k)=>s+k.kdv,0);
+      const topGenel=f.kalemler.reduce((s,k)=>s+k.toplam,0);
+      const tarih=fmtDate(f.tarih);
+      const aciklama=getAciklama(f.unvan,f.fno);
+
+      wsData.push([`${cari.hesapKodu} - ${cari.hesapAdi}`,tarih,sabit.seri,f.fno,sabit.belgeTuru,sabit.bta,"","",sabit.vknTckn,aciklama,Math.round(topGenel*100)/100,"",sabit.odemeTuru]);
+      f.kalemler.forEach(k=>{const sm=stokMap[k.stok]||{stokAdi:k.stok,hesapKodu:"600.99",hesapAdi:k.stok};wsData.push([`${sm.hesapKodu} - ${sm.hesapAdi}`,tarih,sabit.seri,f.fno,sabit.belgeTuru,sabit.bta,sm.stokAdi,Math.round(k.miktar*100)/100,sabit.vknTckn,aciklama,"",Math.round(k.kdvHaric*100)/100,sabit.odemeTuru]);});
+      if(topKdv>0){wsData.push([`${sabit.kdvKod} - ${sabit.kdvAdi}`,tarih,sabit.seri,f.fno,sabit.belgeTuru,sabit.bta,"","",sabit.vknTckn,aciklama,"",Math.round(topKdv*100)/100,sabit.odemeTuru]);}
+    });
+
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws["!cols"]=[{wch:32},{wch:12},{wch:8},{wch:12},{wch:16},{wch:6},{wch:34},{wch:12},{wch:14},{wch:42},{wch:16},{wch:16},{wch:14}];
+    XLSX.utils.book_append_sheet(wb,ws,"Muhasebe Fişleri");
+    XLSX.writeFile(wb,"muhasebe_fisleri.xlsx");
+
+    const msg=document.getElementById("exportMsg");msg.textContent="✓ Excel indirildi!";msg.style.color="var(--grn)";setTimeout(()=>{msg.textContent="";},3000);
+  }catch(err){const msg=document.getElementById("exportMsg");msg.textContent="Hata: "+err.message;msg.style.color="var(--red)";}
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+renderFirmaList();
+</script>
+</body>
+</html>
+

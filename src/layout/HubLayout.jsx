@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 
 const NAV = [
   { to: '/', label: 'Ana Sayfa', end: true, icon: '⌂' },
+  { to: '/firmalar', label: 'Firmalar', icon: '☰' },
   { to: '/hks', label: 'HKS Bildirim', icon: '◈' },
   { to: '/hizli-xml', label: 'Hızlı XML', icon: '⇩' },
   { to: '/muhasebe-fisi', label: 'Muhasebe Fişi', icon: '▣' },

@@ -1,0 +1,1029 @@
+﻿<!DOCTYPE html>
+<!-- saved from url=(0070)file:///C:/Users/urast/Desktop/uyumsoft_unideva_donusturucu%20(1).html -->
+<html lang="tr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uyumsoft → Unideva Dönüştürücü</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2333;
+    --border: #2a3050;
+    --accent: #4f8ef7;
+    --accent2: #00e5a0;
+    --warn: #f7a94f;
+    --danger: #f75050;
+    --text: #e2e8f8;
+    --text-dim: #7a88aa;
+    --text-muted: #3d4a6a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--bg);
+    letter-spacing: -1px;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 15px; font-weight: 600; }
+  .header-sub { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+  .header-badge {
+    margin-left: auto;
+    background: rgba(79,142,247,0.12);
+    border: 1px solid rgba(79,142,247,0.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 36px 24px; }
+
+  /* STEPS */
+  .steps {
+    display: flex; align-items: center; gap: 0;
+    margin-bottom: 36px;
+  }
+  .step {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1;
+  }
+  .step:not(:last-child)::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin: 0 8px;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-family: var(--mono); font-weight: 600;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .step.active .step-num { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .step.done .step-num { background: var(--accent2); border-color: var(--accent2); color: var(--bg); }
+  .step-label { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .step.active .step-label { color: var(--text); }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 56px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(79,142,247,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.04);
+  }
+  .upload-icon {
+    font-size: 40px; margin-bottom: 16px; display: block;
+  }
+  .upload-title { font-size: 18px; font-weight: 500; margin-bottom: 8px; }
+  .upload-sub { font-size: 13px; color: var(--text-dim); }
+  .upload-hint {
+    margin-top: 20px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(79,142,247,0.08);
+    border: 1px solid rgba(79,142,247,0.2);
+    color: var(--accent);
+    font-size: 12px; font-family: var(--mono);
+    padding: 6px 14px; border-radius: 6px;
+  }
+
+  /* MAPPING PANEL */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .panel-header {
+    background: var(--surface2);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-header-icon { font-size: 16px; }
+  .panel-header-title { font-size: 13px; font-weight: 600; }
+  .panel-header-count {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-dim);
+  }
+  .panel-body { padding: 20px; }
+
+  /* FILE INFO */
+  .file-info {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(0,229,160,0.06);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+  .file-info-icon { font-size: 22px; }
+  .file-info-name { font-size: 13px; font-weight: 500; color: var(--accent2); }
+  .file-info-meta { font-size: 11px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+
+  /* COLUMN MAPPING */
+  .mapping-grid {
+    display: grid;
+    gap: 2px;
+  }
+  .mapping-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr 100px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .mapping-row:hover { background: var(--surface2); }
+  .mapping-row.header-row {
+    background: var(--surface2);
+    padding: 6px 12px;
+    font-size: 11px; color: var(--text-dim); font-family: var(--mono); font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .target-col {
+    font-size: 12px; font-family: var(--mono); color: var(--accent);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .arrow { color: var(--text-muted); font-size: 14px; text-align: center; }
+  .source-select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 5px 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a88aa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+  }
+  .source-select:focus { outline: none; border-color: var(--accent); }
+  .source-select option { background: #1a1f2e; }
+  .fixed-badge {
+    font-size: 11px; font-family: var(--mono);
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    display: block;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .req-badge {
+    font-size: 10px; font-family: var(--mono);
+    display: inline-block;
+    padding: 2px 7px; border-radius: 4px;
+    font-weight: 600; white-space: nowrap;
+  }
+  .req-badge.required { background: rgba(247,169,79,0.15); color: var(--warn); border: 1px solid rgba(247,169,79,0.3); }
+  .req-badge.optional { background: rgba(79,142,247,0.08); color: var(--text-dim); border: 1px solid var(--border); }
+  .req-badge.fixed { background: rgba(0,229,160,0.08); color: var(--accent2); border: 1px solid rgba(0,229,160,0.2); }
+
+  /* PREVIEW TABLE */
+  .preview-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 12px; font-family: var(--mono);
+  }
+  th {
+    background: var(--surface2);
+    color: var(--text-dim);
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  td {
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(42,48,80,0.5);
+    color: var(--text);
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  tr:hover td { background: rgba(79,142,247,0.04); }
+
+  /* BUTTONS */
+  .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+  .btn {
+    padding: 11px 24px; border-radius: 8px; border: none;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .btn-primary {
+    background: var(--accent); color: var(--bg);
+  }
+  .btn-primary:hover { background: #6fa0ff; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary {
+    background: var(--surface2); color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text-dim); }
+  .btn-success {
+    background: var(--accent2); color: var(--bg);
+  }
+  .btn-success:hover { background: #00ffb3; transform: translateY(-1px); }
+  .btn-lg { padding: 14px 32px; font-size: 15px; border-radius: 10px; }
+
+  /* STATUS / LOG */
+  .log-area {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    min-height: 60px;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 16px;
+  }
+  .log-line { display: block; line-height: 1.7; }
+  .log-line.ok { color: var(--accent2); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.err { color: var(--danger); }
+  .log-line.info { color: var(--accent); }
+
+  /* ALERTS */
+  .alert {
+    padding: 12px 16px; border-radius: 8px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .alert.info { background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.25); color: var(--accent); }
+  .alert.warn { background: rgba(247,169,79,0.1); border: 1px solid rgba(247,169,79,0.25); color: var(--warn); }
+
+  /* HIDDEN */
+  .hidden { display: none !important; }
+
+  /* SECTIONS */
+  .section { margin-bottom: 32px; }
+  .section-title {
+    font-size: 13px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .settings-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+  .field input, .field select {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text);
+    font-family: var(--sans); font-size: 13px; padding: 8px 12px;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+  .field select option { background: #1a1f2e; }
+
+  input[type=file] { display: none; }
+
+  .result-panel {
+    background: rgba(0,229,160,0.05);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 14px;
+    padding: 32px;
+    text-align: center;
+  }
+  .result-icon { font-size: 48px; margin-bottom: 16px; }
+  .result-title { font-size: 22px; font-weight: 600; color: var(--accent2); margin-bottom: 8px; }
+  .result-sub { font-size: 14px; color: var(--text-dim); margin-bottom: 24px; }
+  .result-stats {
+    display: flex; justify-content: center; gap: 32px; margin-bottom: 28px;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-size: 28px; font-weight: 600; font-family: var(--mono); color: var(--accent2); }
+  .stat-label { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+</style>
+</head>
+<body>
+<script>
+try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRIM_CLOUD__') || '{}'); } catch (e) { window.__MUSAVIRIM_CLOUD__ = {}; }
+</script>
+<script src="/tools/cloud-bridge.js"></script>
+
+<div class="header">
+  <div class="header-logo">U→V</div>
+  <div>
+    <div class="header-title">Uyumsoft → Unideva Dönüştürücü</div>
+    <div class="header-sub">Gelir Defteri Excel Aktarım Aracı</div>
+  </div>
+  <div class="header-badge">Gelir Defteri / SMM</div>
+</div>
+
+<div class="container">
+
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step active" id="step1">
+      <div class="step-num">1</div>
+      <div class="step-label">Dosya Yükle</div>
+    </div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      <div class="step-label">Sütun Eşleştir</div>
+    </div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      <div class="step-label">Dönüştür &amp; İndir</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: UPLOAD -->
+  <div id="section-upload" class="">
+    <label class="upload-zone" id="dropZone" for="fileInput">
+      <span class="upload-icon">📂</span>
+      <div class="upload-title">Uyumsoft Excel Dosyasını Yükle</div>
+      <div class="upload-sub">Uyumsoft'tan indirdiğin SMM makbuz listesini buraya sürükle veya tıkla</div>
+      <div class="upload-hint">📎 .xlsx veya .xls formatı desteklenir</div>
+    </label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+  </div>
+
+  <!-- STEP 2: MAPPING -->
+  <div id="section-mapping" class="hidden">
+
+    <div class="file-info" id="fileInfoBar">
+      <span class="file-info-icon">📊</span>
+      <div>
+        <div class="file-info-name" id="fileName">24.04.2026__e-smm Genel Raporu.xlsx</div>
+        <div class="file-info-meta" id="fileMeta">670 satır · 20 sütun · Rapor sayfası</div>
+      </div>
+      <button class="btn btn-secondary" style="margin-left:auto;padding:6px 14px;font-size:12px" onclick="resetAll()">↺ Yeni Dosya</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Sabit Değerler</div>
+      <div class="alert info">💡 Bu değerler tüm satırlara aynı şekilde uygulanır. Uyumsofttan gelen veriye göre gerekirse değiştir.</div>
+      <div class="settings-grid">
+        <div class="field">
+          <label>Grup</label>
+          <select id="fixGrup">
+            <option value="HZ-Hizmet Satış">HZ-Hizmet Satış</option>
+            <option value="DG-Diğer">DG-Diğer</option>
+            <option value="TU-Ticari Ürün Satış">TU-Ticari Ürün Satış</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Belge Türü</label>
+          <select id="fixBelgeTuru">
+            <option value="10 - e-Serbest Meslek Makbuzu">10 - e-Serbest Meslek Makbuzu</option>
+            <option value="1 - e-Fatura">1 - e-Fatura</option>
+            <option value="2 - e-Arşiv Fatura">2 - e-Arşiv Fatura</option>
+            <option value="3 - Kağıt Fatura">3 - Kağıt Fatura</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>KDV Oranı (%)</label>
+          <input type="number" id="fixKdvYuzde" value="20" min="0" max="100">
+        </div>
+        <div class="field">
+          <label>KDV Dahil?</label>
+          <select id="fixKdvDahil">
+            <option value="Hayır">Hayır</option>
+            <option value="Evet">Evet</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Satış Türü</label>
+          <select id="fixSatisTuru">
+            <option value="1 - Normal Satışlar">1 - Normal Satışlar</option>
+            <option value="2 - İhracat">2 - İhracat</option>
+            <option value="3 - Özel Matrah">3 - Özel Matrah</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Gelir Türü</label>
+          <select id="fixGelirTuru">
+            <option value="2 - Hizmet Satışı">2 - Hizmet Satışı</option>
+            <option value="1 - Mal Satışı">1 - Mal Satışı</option>
+            <option value="3 - Diğer">3 - Diğer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Gelir Alt Türü</label>
+          <select id="fixGelirAltTuru">
+            <option value="188 - Hizmet Satışı">188 - Hizmet Satışı</option>
+            <option value="101 - Mal Satışı">101 - Mal Satışı</option>
+            <option value="301 - Diğer">301 - Diğer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>İşlem Türü</label>
+          <input type="text" id="fixIslemTuru" value="1100">
+        </div>
+        <div class="field">
+          <label>Faaliyet Kodu</label>
+          <input type="text" id="fixFaaliyetKodu" value="969906">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Sütun Eşleştirme</div>
+      <div class="alert warn" id="mappingAlert" style="display:none"></div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-header-icon">🔗</span>
+          <span class="panel-header-title">Unideva Sütunları ↔ Uyumsoft Sütunları</span>
+          <span class="panel-header-count" id="mappingCount">12 eşleştirilebilir sütun</span>
+        </div>
+        <div class="panel-body">
+          <div class="mapping-grid">
+            <div class="mapping-row header-row">
+              <span>Unideva Sütunu</span>
+              <span></span>
+              <span>Uyumsoft Kaynak Sütunu</span>
+              <span>Durum</span>
+            </div>
+            <div id="mappingRows"><div class="mapping-row" id="mrow_belgeTarihi">
+      <span class="target-col">Belge Tarihi</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_belgeTarihi" onchange="onMapChange(&#39;belgeTarihi&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge required" id="badge_belgeTarihi">
+        Zorunlu
+      </span>
+    </div><div class="mapping-row" id="mrow_seriNo">
+      <span class="target-col">Seri No</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_seriNo" onchange="onMapChange(&#39;seriNo&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_seriNo">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_siraNo">
+      <span class="target-col">Sıra No</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_siraNo" onchange="onMapChange(&#39;siraNo&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge required" id="badge_siraNo">
+        Zorunlu
+      </span>
+    </div><div class="mapping-row" id="mrow_vkn">
+      <span class="target-col">VKN</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_vkn" onchange="onMapChange(&#39;vkn&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge required" id="badge_vkn">
+        Zorunlu
+      </span>
+    </div><div class="mapping-row" id="mrow_aciklama">
+      <span class="target-col">Açıklama</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_aciklama" onchange="onMapChange(&#39;aciklama&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_aciklama">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_tutar">
+      <span class="target-col">Tutar</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_tutar" onchange="onMapChange(&#39;tutar&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge required" id="badge_tutar">
+        Zorunlu
+      </span>
+    </div><div class="mapping-row" id="mrow_matrah">
+      <span class="target-col">Matrah</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_matrah" onchange="onMapChange(&#39;matrah&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_matrah">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_kdv">
+      <span class="target-col">KDV</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_kdv" onchange="onMapChange(&#39;kdv&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_kdv">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_toplam">
+      <span class="target-col">Toplam</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_toplam" onchange="onMapChange(&#39;toplam&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_toplam">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_stopajKodu">
+      <span class="target-col">Stopaj Kodu</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_stopajKodu" onchange="onMapChange(&#39;stopajKodu&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_stopajKodu">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_stopajYuzde">
+      <span class="target-col">Stopaj%</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_stopajYuzde" onchange="onMapChange(&#39;stopajYuzde&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_stopajYuzde">
+        İsteğe bağlı
+      </span>
+    </div><div class="mapping-row" id="mrow_stopaj">
+      <span class="target-col">Stopaj</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_stopaj" onchange="onMapChange(&#39;stopaj&#39;)">
+        <option value="">— boş bırak —</option>
+        <option value="ETTN">ETTN</option><option value="Makbuz No">Makbuz No</option><option value="Teslim Türü">Teslim Türü</option><option value="Belge Tarihi">Belge Tarihi</option><option value="Durum">Durum</option><option value="Cari Adı">Cari Adı</option><option value="Cari Vkn/Tckn">Cari Vkn/Tckn</option><option value="Para Birimi">Para Birimi</option><option value="Ödenecek Tutar">Ödenecek Tutar</option><option value="Vergiler Toplamı">Vergiler Toplamı</option><option value="Kdv Matrahı">Kdv Matrahı</option><option value="Kdv">Kdv</option><option value="Stopaj Matrahı">Stopaj Matrahı</option><option value="Stopaj">Stopaj</option><option value="Tevfikat">Tevfikat</option><option value="Brüt Toplam">Brüt Toplam</option><option value="Net Toplam">Net Toplam</option><option value="Not 1">Not 1</option><option value="Not 2">Not 2</option><option value="Not 3">Not 3</option>
+      </select>
+      <span class="req-badge optional" id="badge_stopaj">
+        İsteğe bağlı
+      </span>
+    </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Veri Önizleme (İlk 5 Satır)</div>
+      <div class="panel">
+        <div class="panel-body" style="padding:0">
+          <div class="preview-wrap">
+            <table id="previewTable"><thead><tr><th>Belge Tarihi</th><th>Seri No</th><th>Sıra No</th><th>VKN</th><th>Açıklama</th><th>Tutar</th><th>Matrah</th><th>KDV</th><th>Toplam</th><th>Stopaj Kodu</th><th>Stopaj%</th><th>Stopaj</th></tr></thead><tbody><tr><td title="01.03.2026">01.03.2026</td><td title="—">—</td><td title="FLM2026000000546">FLM2026000000546</td><td title="11111111111">11111111111</td><td title="—">—</td><td title="124.8">124.8</td><td title="104">104</td><td title="20.8">20.8</td><td title="20.8">20.8</td><td title="—">—</td><td title="0">0</td><td title="0">0</td></tr><tr><td title="01.03.2026">01.03.2026</td><td title="—">—</td><td title="FLM2026000000547">FLM2026000000547</td><td title="11111111111">11111111111</td><td title="—">—</td><td title="124.8">124.8</td><td title="104">104</td><td title="20.8">20.8</td><td title="20.8">20.8</td><td title="—">—</td><td title="0">0</td><td title="0">0</td></tr><tr><td title="01.03.2026">01.03.2026</td><td title="—">—</td><td title="FLM2026000000548">FLM2026000000548</td><td title="11111111111">11111111111</td><td title="—">—</td><td title="399.6">399.6</td><td title="333">333</td><td title="66.6">66.6</td><td title="66.6">66.6</td><td title="—">—</td><td title="0">0</td><td title="0">0</td></tr><tr><td title="01.03.2026">01.03.2026</td><td title="—">—</td><td title="FLM2026000000549">FLM2026000000549</td><td title="11111111111">11111111111</td><td title="—">—</td><td title="124.8">124.8</td><td title="104">104</td><td title="20.8">20.8</td><td title="20.8">20.8</td><td title="—">—</td><td title="0">0</td><td title="0">0</td></tr><tr><td title="01.03.2026">01.03.2026</td><td title="—">—</td><td title="FLM2026000000550">FLM2026000000550</td><td title="11111111111">11111111111</td><td title="—">—</td><td title="124.8">124.8</td><td title="104">104</td><td title="20.8">20.8</td><td title="20.8">20.8</td><td title="—">—</td><td title="0">0</td><td title="0">0</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary btn-lg" onclick="convert()">⚡ Dönüştür &amp; İndir</button>
+      <button class="btn btn-secondary" onclick="autoMap()">🪄 Otomatik Eşleştir</button>
+    </div>
+
+    <div class="log-area hidden" id="logArea"></div>
+  </div>
+
+  <!-- STEP 3: RESULT -->
+  <div id="section-result" class="hidden">
+    <div class="result-panel">
+      <div class="result-icon">✅</div>
+      <div class="result-title">Dönüşüm Tamamlandı!</div>
+      <div class="result-sub">Unideva aktarım dosyası hazır. Aşağıdan indir.</div>
+      <div class="result-stats">
+        <div class="stat">
+          <div class="stat-val" id="resRowCount">-</div>
+          <div class="stat-label">Kayıt</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="resColCount">33</div>
+          <div class="stat-label">Sütun</div>
+        </div>
+      </div>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-success btn-lg" id="downloadBtn" onclick="downloadFile()">📥 Excel İndir</button>
+        <button class="btn btn-secondary" onclick="resetAll()">↺ Yeni Dönüşüm</button>
+      </div>
+    </div>
+    <div class="log-area" id="logArea2"></div>
+  </div>
+
+</div>
+
+<script>
+// ==================== STATE ====================
+let sourceData = [];      // array of objects from Uyumsoft xlsx
+let sourceHeaders = [];   // column names from Uyumsoft
+let outputBuffer = null;  // converted xlsx blob
+
+// ==================== UNIDEVA COLUMNS ====================
+// col: internal key, label: display, type: 'map' = user maps, 'fixed' = from settings, 'calc' = computed, 'empty' = always empty
+const UNIDEVA_COLS = [
+  { key: 'sablon',           label: 'Şablon',                   type: 'empty' },
+  { key: 'grup',             label: 'Grup',                     type: 'fixed', fixKey: 'fixGrup' },
+  { key: 'belgeTuru',        label: 'Belge Türü',               type: 'fixed', fixKey: 'fixBelgeTuru' },
+  { key: 'belgeTarihi',      label: 'Belge Tarihi',             type: 'map', req: true,  hint: 'tarih' },
+  { key: 'seriNo',           label: 'Seri No',                  type: 'map', req: false, hint: '' },
+  { key: 'siraNo',           label: 'Sıra No',                  type: 'map', req: true,  hint: 'no|numara|sıra|belge no' },
+  { key: 'vkn',              label: 'VKN',                      type: 'map', req: true,  hint: 'vkn|tckn|vergi' },
+  { key: 'aciklama',         label: 'Açıklama',                 type: 'map', req: false, hint: 'ad|isim|müşteri|unvan' },
+  { key: 'tutar',            label: 'Tutar',                    type: 'map', req: true,  hint: 'tutar|matrah|brüt' },
+  { key: 'kdvYuzde',         label: 'KDV%',                     type: 'fixed', fixKey: 'fixKdvYuzde' },
+  { key: 'kdvDahil',         label: 'KDV Dahil?',               type: 'fixed', fixKey: 'fixKdvDahil' },
+  { key: 'matrah',           label: 'Matrah',                   type: 'map', req: false, hint: 'matrah' },
+  { key: 'kdv',              label: 'KDV',                      type: 'map', req: false, hint: 'kdv tutarı|kdv$' },
+  { key: 'toplam',           label: 'Toplam',                   type: 'map', req: false, hint: 'toplam|genel toplam' },
+  { key: 'satisTuru',        label: 'Satış Türü',               type: 'fixed', fixKey: 'fixSatisTuru' },
+  { key: 'gelirTuru',        label: 'Gelir Türü',               type: 'fixed', fixKey: 'fixGelirTuru' },
+  { key: 'gelirAltTuru',     label: 'Gelir Alt Türü',           type: 'fixed', fixKey: 'fixGelirAltTuru' },
+  { key: 'islemTuru',        label: 'İşlem Türü',               type: 'fixed', fixKey: 'fixIslemTuru' },
+  { key: 'stopajKodu',       label: 'Stopaj Kodu',              type: 'map', req: false, hint: 'stopaj kodu' },
+  { key: 'stopajYuzde',      label: 'Stopaj%',                  type: 'map', req: false, hint: 'stopaj%|stopaj oran' },
+  { key: 'stopaj',           label: 'Stopaj',                   type: 'map', req: false, hint: 'stopaj tutar' },
+  { key: 'islemBedeli',      label: 'İşlem Bedeli',             type: 'empty' },
+  { key: 'matrahDusulecek',  label: 'Matrahtan Düşülecek',      type: 'empty' },
+  { key: 'tevkifatKodu',     label: 'Tevkifat Kodu',            type: 'empty' },
+  { key: 'tevkifatYuzde',    label: 'Tevkifat%',                type: 'empty' },
+  { key: 'tevkifat',         label: 'Tevkifat',                 type: 'empty' },
+  { key: 'tamIstKodu',       label: 'Tam İst. Kodu',            type: 'empty' },
+  { key: 'kismiIstKodu',     label: 'Kısmi İst. Kodu',         type: 'empty' },
+  { key: 'digerKod',         label: 'Diğer İşlemler Kodu',      type: 'empty' },
+  { key: 'digerYuzde',       label: 'Diğer İşlemler%',          type: 'empty' },
+  { key: 'krediKarti',       label: 'Kredi Kartı',              type: 'empty' },
+  { key: 'faaliyetKodu',     label: 'Faaliyet Kodu',            type: 'fixed', fixKey: 'fixFaaliyetKodu' },
+  { key: 'kdvsizIslem',      label: "KDV'siz İşlem",            type: 'empty' },
+];
+
+// user's mapping: key => source column name
+const userMapping = {};
+
+// ==================== FILE UPLOAD ====================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (!json.length) { alert('Dosya boş görünüyor!'); return; }
+
+      sourceData = json;
+      sourceHeaders = Object.keys(json[0]);
+
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileMeta').textContent =
+        `${json.length} satır · ${sourceHeaders.length} sütun · ${wb.SheetNames[0]} sayfası`;
+
+      show('section-mapping');
+      hide('section-upload');
+      setStep(2);
+      buildMappingRows();
+      autoMap();
+      buildPreview();
+    } catch(err) {
+      alert('Dosya okunamadı: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ==================== MAPPING UI ====================
+function buildMappingRows() {
+  const container = document.getElementById('mappingRows');
+  container.innerHTML = '';
+  let mapCount = 0;
+
+  UNIDEVA_COLS.forEach(col => {
+    if (col.type === 'empty') return;
+    if (col.type === 'fixed') return;
+    mapCount++;
+
+    const row = document.createElement('div');
+    row.className = 'mapping-row';
+    row.id = 'mrow_' + col.key;
+
+    const opts = sourceHeaders.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join('');
+
+    row.innerHTML = `
+      <span class="target-col">${col.label}</span>
+      <span class="arrow">→</span>
+      <select class="source-select" id="map_${col.key}" onchange="onMapChange('${col.key}')">
+        <option value="">— boş bırak —</option>
+        ${opts}
+      </select>
+      <span class="req-badge ${col.req ? 'required' : 'optional'}" id="badge_${col.key}">
+        ${col.req ? 'Zorunlu' : 'İsteğe bağlı'}
+      </span>
+    `;
+    container.appendChild(row);
+  });
+
+  document.getElementById('mappingCount').textContent = `${mapCount} eşleştirilebilir sütun`;
+}
+
+function onMapChange(key) {
+  const val = document.getElementById('map_' + key).value;
+  userMapping[key] = val;
+  buildPreview();
+}
+
+function autoMap() {
+  // Smart auto-mapping based on similarity
+  const normalize = s => (s || '').toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[ğ]/g, 'g').replace(/[ü]/g, 'u').replace(/[ş]/g, 's')
+    .replace(/[ı]/g, 'i').replace(/[ö]/g, 'o').replace(/[ç]/g, 'c')
+    .trim();
+
+  const mapDefs = {
+    belgeTarihi: ['tarih', 'date', 'belge tarihi', 'fatura tarihi', 'makbuz tarihi', 'duzenle'],
+    siraNo:      ['sıra no', 'sira no', 'belge no', 'makbuz no', 'fatura no', 'numara', 'ettn', 'uuid', 'no'],
+    vkn:         ['vkn', 'tckn', 'vergi no', 'vergi kimlik', 'tc kimlik', 'musteri no'],
+    aciklama:    ['ad soyad', 'unvan', 'musteri', 'müşteri', 'alici', 'alıcı', 'isim', 'adsoyad', 'isim soyisim'],
+    tutar:       ['tutar', 'matrah', 'net tutar', 'brut tutar', 'brüt', 'hizmet bedeli', 'bedel'],
+    kdvYuzde:    ['kdv oran', 'kdv%', 'vergi oran', 'kdv orani', 'oran'],
+    matrah:      ['matrah', 'kdv matrah'],
+    kdv:         ['kdv tutar', 'kdv miktari', 'vergi tutar', 'kdv$'],
+    toplam:      ['toplam', 'genel toplam', 'tutar toplam', 'brüt toplam'],
+    stopajKodu:  ['stopaj kod'],
+    stopajYuzde: ['stopaj oran', 'stopaj%'],
+    stopaj:      ['stopaj tutar', 'stopaj'],
+  };
+
+  UNIDEVA_COLS.forEach(col => {
+    if (col.type !== 'map') return;
+    const el = document.getElementById('map_' + col.key);
+    if (!el) return;
+
+    const hints = mapDefs[col.key] || [col.hint || col.label];
+    for (const hint of hints) {
+      const hn = normalize(hint);
+      const match = sourceHeaders.find(h => {
+        const hn2 = normalize(h);
+        return hn2.includes(hn) || hn.includes(hn2);
+      });
+      if (match) {
+        el.value = match;
+        userMapping[col.key] = match;
+        break;
+      }
+    }
+  });
+
+  buildPreview();
+}
+
+// ==================== PREVIEW ====================
+function buildPreview() {
+  const table = document.getElementById('previewTable');
+  if (!sourceData.length) return;
+
+  const previewCols = UNIDEVA_COLS.filter(c => c.type === 'map');
+  const rows = sourceData.slice(0, 5);
+
+  let html = '<thead><tr>';
+  previewCols.forEach(c => { html += `<th>${c.label}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(row => {
+    html += '<tr>';
+    previewCols.forEach(c => {
+      const srcCol = userMapping[c.key] || '';
+      const val = srcCol ? (row[srcCol] ?? '') : '—';
+      const display = val instanceof Date ? formatDate(val) : String(val);
+      html += `<td title="${esc(display)}">${esc(display.slice(0, 30))}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ==================== CONVERT ====================
+function convert() {
+  const log = (msg, cls='') => {
+    const la = document.getElementById('logArea');
+    la.classList.remove('hidden');
+    la.innerHTML += `<span class="log-line ${cls}">${msg}</span>\n`;
+    la.scrollTop = la.scrollHeight;
+  };
+
+  document.getElementById('logArea') && (document.getElementById('logArea').innerHTML = '');
+
+  // Validate required fields
+  const missing = UNIDEVA_COLS.filter(c => c.type === 'map' && c.req && !userMapping[c.key]);
+  if (missing.length) {
+    log(`⚠ Zorunlu sütunlar eşleştirilmedi: ${missing.map(m=>m.label).join(', ')}`, 'warn');
+    document.getElementById('mappingAlert').style.display = 'flex';
+    document.getElementById('mappingAlert').textContent = `⚠ Zorunlu sütunlar eksik: ${missing.map(m=>m.label).join(', ')}`;
+    return;
+  }
+  document.getElementById('mappingAlert').style.display = 'none';
+
+  log('▶ Dönüşüm başlatılıyor...', 'info');
+
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  // Header row
+  const headers = UNIDEVA_COLS.map(c => c.label);
+  wsData.push(headers);
+
+  let rowCount = 0;
+  sourceData.forEach((srcRow, idx) => {
+    const outRow = UNIDEVA_COLS.map(col => {
+      if (col.type === 'empty') return '';
+      if (col.type === 'fixed') return document.getElementById(col.fixKey)?.value ?? '';
+      if (col.type === 'map') {
+        const srcCol = userMapping[col.key] || '';
+        if (!srcCol) return '';
+        let val = srcRow[srcCol] ?? '';
+
+        // Date formatting
+        if (col.key === 'belgeTarihi') {
+          if (val instanceof Date) return formatDate(val);
+          if (typeof val === 'number') {
+            // Excel serial date
+            const d = XLSX.SSF.parse_date_code(val);
+            if (d) return `${d.d.toString().padStart(2,'0')}.${d.m.toString().padStart(2,'0')}.${d.y}`;
+          }
+          if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}/)) {
+            const d = new Date(val);
+            return formatDate(d);
+          }
+          return val;
+        }
+
+        // Number cleanup
+        if (['tutar','matrah','kdv','toplam','stopaj','kdvYuzde','stopajYuzde'].includes(col.key)) {
+          const n = parseFloat(String(val).replace(/[^0-9.,\-]/g, '').replace(',', '.'));
+          return isNaN(n) ? val : n;
+        }
+
+        return val;
+      }
+      return '';
+    });
+    wsData.push(outRow);
+    rowCount++;
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws['!cols'] = UNIDEVA_COLS.map((c, i) => {
+    const maxLen = Math.max(c.label.length, ...wsData.slice(1).map(r => String(r[i]||'').length));
+    return { wch: Math.min(Math.max(maxLen + 2, 8), 40) };
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Gelir Defteri');
+
+  outputBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+  log(`✓ ${rowCount} satır dönüştürüldü`, 'ok');
+  log(`✓ 33 sütun Unideva şablonuna aktarıldı`, 'ok');
+  log(`✓ Dosya hazır, indiriliyor...`, 'ok');
+
+  // Show result
+  document.getElementById('resRowCount').textContent = rowCount;
+  document.getElementById('logArea2').innerHTML = document.getElementById('logArea').innerHTML;
+
+  show('section-result');
+  hide('section-mapping');
+  setStep(3);
+
+  setTimeout(downloadFile, 400);
+}
+
+function downloadFile() {
+  if (!outputBuffer) return;
+  const blob = new Blob([outputBuffer], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'unideva_gelir_defteri.xlsx';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ==================== HELPERS ====================
+function formatDate(d) {
+  if (!(d instanceof Date)) return d;
+  return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+}
+
+function resetAll() {
+  sourceData = []; sourceHeaders = []; outputBuffer = null;
+  Object.keys(userMapping).forEach(k => delete userMapping[k]);
+  fileInput.value = '';
+  show('section-upload');
+  hide('section-mapping');
+  hide('section-result');
+  setStep(1);
+}
+</script>
+
+
+</body></html>
