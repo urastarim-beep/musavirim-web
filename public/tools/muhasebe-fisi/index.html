@@ -531,15 +531,17 @@ function parseExcel(buf) {
   });
 
   // colMap eksiklerini pozisyon sırasıyla güvenli fallback
+  // Tipik: Tarih | Belge No | Cari | Ünvan | Stok | Miktar | Birim | KdvHariç | KDV | Toplam
   if(colMap.tarih===undefined)colMap.tarih=0;
   if(colMap.fno===undefined)colMap.fno=1;
   if(colMap.cari===undefined)colMap.cari=2;
   if(colMap.unvan===undefined)colMap.unvan=3;
   if(colMap.stok===undefined)colMap.stok=4;
   if(colMap.miktar===undefined)colMap.miktar=5;
-  if(colMap.kdvHaric===undefined)colMap.kdvHaric=6;
-  if(colMap.kdv===undefined)colMap.kdv=7;
-  if(colMap.toplam===undefined)colMap.toplam=8;
+  if(colMap.birim===undefined)colMap.birim=6;
+  if(colMap.kdvHaric===undefined)colMap.kdvHaric=7;
+  if(colMap.kdv===undefined)colMap.kdv=8;
+  if(colMap.toplam===undefined)colMap.toplam=9;
 
   const data=allRows.slice(headerIdx+1).filter(r=>{
     const tarih=r[colMap.tarih];const fno=r[colMap.fno];
@@ -553,6 +555,10 @@ function parseExcel(buf) {
   const tarihKey=(t)=>{
     if(!t)return"";
     if(t instanceof Date)return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    if(typeof t==="number"&&typeof XLSX!=="undefined"&&XLSX.SSF&&XLSX.SSF.parse_date_code){
+      const d=XLSX.SSF.parse_date_code(t);
+      if(d)return d.y+"-"+String(d.m).padStart(2,"0")+"-"+String(d.d).padStart(2,"0");
+    }
     const s=String(t).trim();
     // "31.03.2026" -> "2026-03-31"
     const m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
@@ -568,8 +574,9 @@ function parseExcel(buf) {
     if(!stok)return;
     stokSet.add(stok);
     if(cari&&!bulunanCariler[cari])bulunanCariler[cari]=unvan;
-    // Anahtar: fno + tarih (aynı fno farklı günde = ayrı fiş)
-    const key=fno+"|"+tarihKey(r[colMap.tarih]);
+    // Anahtar: belge + tarih + cari
+    // (Aynı Z/belge no aynı günde LUKOİL-2 ve LUKOİL-3 için gelebiliyor; cari olmadan birleşiyordu)
+    const key=fno+"|"+tarihKey(r[colMap.tarih])+"|"+(cari||unvan||"");
     if(!fatMap[key])fatMap[key]={tarih:r[colMap.tarih],fno,cari,unvan,kalemler:[]};
     fatMap[key].kalemler.push({stok,miktar:safeNum(r[colMap.miktar]),birim:String(r[colMap.birim]||"").trim(),kdvHaric:safeNum(r[colMap.kdvHaric]),kdv:safeNum(r[colMap.kdv]),toplam:safeNum(r[colMap.toplam])});
   });
@@ -628,7 +635,8 @@ function renderPreview(){
   syncMapsFromInputs();
   const q=(document.getElementById("filterInput").value||"").toLowerCase();
   const btaVal=document.getElementById("sabitBTA").value;
-  const list=faturalar.filter(f=>{if(!q)return true;return f.fno.toLowerCase().includes(q)||f.unvan.toLowerCase().includes(q)||fmtDate(f.tarih).includes(q);}).map(f=>({...f,topGenel:f.kalemler.reduce((s,k)=>s+k.toplam,0),topKdv:f.kalemler.reduce((s,k)=>s+k.kdv,0),topKdvHaric:f.kalemler.reduce((s,k)=>s+k.kdvHaric,0)}));
+  const displayUnvan=(f)=>{const m=cariMap[f.cari];return (f.unvan&&f.unvan.trim())||(m&&m.hesapAdi)||f.cari||"";};
+  const list=faturalar.filter(f=>{if(!q)return true;const u=displayUnvan(f).toLowerCase();const c=(f.cari||"").toLowerCase();return f.fno.toLowerCase().includes(q)||u.includes(q)||c.includes(q)||fmtDate(f.tarih).includes(q);}).map(f=>({...f,topGenel:f.kalemler.reduce((s,k)=>s+k.toplam,0),topKdv:f.kalemler.reduce((s,k)=>s+k.kdv,0),topKdvHaric:f.kalemler.reduce((s,k)=>s+k.kdvHaric,0)}));
   const totBorc=list.reduce((s,f)=>s+f.topGenel,0);
   const totAlacak=list.reduce((s,f)=>s+f.topKdvHaric+f.topKdv,0);
   const totKdv=list.reduce((s,f)=>s+f.topKdv,0);
@@ -642,11 +650,12 @@ function renderPreview(){
 
   document.getElementById("fisCards").innerHTML=list.slice(0,50).map((f,i)=>{
     const cari=cariMap[f.cari]||{hesapKodu:"?",hesapAdi:f.unvan};
-    const aciklama=getAciklama(f.unvan,f.fno);
+    const unvanGoster=displayUnvan(f);
+    const aciklama=getAciklama(unvanGoster,f.fno);
     let rows=`<tr class="row-borc"><td class="mono c-gold">${cari.hesapKodu} - ${cari.hesapAdi}</td><td class="c-grn bold">${btaVal}</td><td>—</td><td class="c-dim">${aciklama}</td><td class="right mono c-grn">${fmt(f.topGenel)}</td><td class="right c-dim">—</td></tr>`;
     f.kalemler.forEach(k=>{const sm=stokMap[k.stok]||{stokAdi:k.stok,hesapKodu:"?",hesapAdi:k.stok};rows+=`<tr class="row-alacak"><td class="mono c-gold">${sm.hesapKodu} - ${sm.hesapAdi}</td><td class="c-red bold">${btaVal}</td><td>${sm.stokAdi}</td><td class="c-dim">${aciklama}</td><td class="right c-dim">—</td><td class="right mono c-red">${fmt(k.kdvHaric)}</td></tr>`;});
     if(f.topKdv>0){rows+=`<tr class="row-alacak"><td class="mono c-gold">${kdvKod} - ${kdvAdi}</td><td class="c-red bold">${btaVal}</td><td>—</td><td class="c-dim">${aciklama}</td><td class="right c-dim">—</td><td class="right mono c-red">${fmt(f.topKdv)}</td></tr>`;}
-    return `<details class="fis-card"><summary class="fis-summary"><div style="display:flex;gap:12px;align-items:center"><span class="fis-no">${f.fno}</span><span class="fis-date">${fmtDate(f.tarih)}</span><span>${f.unvan}</span></div><span class="fis-total">${fmt(f.topGenel)} ₺</span></summary><div class="fis-body"><table class="fis-table"><thead><tr><th>Hesap</th><th>B.T.A.</th><th>Stok</th><th>Açıklama</th><th class="right">Borç</th><th class="right">Alacak</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+    return `<details class="fis-card"><summary class="fis-summary"><div style="display:flex;gap:12px;align-items:center"><span class="fis-no">${f.fno}</span><span class="fis-date">${fmtDate(f.tarih)}</span><span>${unvanGoster}</span></div><span class="fis-total">${fmt(f.topGenel)} ₺</span></summary><div class="fis-body"><table class="fis-table"><thead><tr><th>Hesap</th><th>B.T.A.</th><th>Stok</th><th>Açıklama</th><th class="right">Borç</th><th class="right">Alacak</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
   }).join("")+(list.length>50?'<div style="text-align:center;padding:16px;color:var(--txD);font-size:12px">İlk 50 fiş gösteriliyor.</div>':"");
 }
 
@@ -664,10 +673,11 @@ function doExport(){
 
     sorted.forEach(f=>{
       const cari=cariMap[f.cari]||{hesapKodu:f.cari,hesapAdi:f.unvan};
+      const unvanGoster=(f.unvan&&f.unvan.trim())||cari.hesapAdi||f.cari||"";
       const topKdv=f.kalemler.reduce((s,k)=>s+k.kdv,0);
       const topGenel=f.kalemler.reduce((s,k)=>s+k.toplam,0);
       const tarih=fmtDate(f.tarih);
-      const aciklama=getAciklama(f.unvan,f.fno);
+      const aciklama=getAciklama(unvanGoster,f.fno);
 
       wsData.push([`${cari.hesapKodu} - ${cari.hesapAdi}`,tarih,sabit.seri,f.fno,sabit.belgeTuru,sabit.bta,"","",sabit.vknTckn,aciklama,Math.round(topGenel*100)/100,"",sabit.odemeTuru]);
       f.kalemler.forEach(k=>{const sm=stokMap[k.stok]||{stokAdi:k.stok,hesapKodu:"600.99",hesapAdi:k.stok};wsData.push([`${sm.hesapKodu} - ${sm.hesapAdi}`,tarih,sabit.seri,f.fno,sabit.belgeTuru,sabit.bta,sm.stokAdi,Math.round(k.miktar*100)/100,sabit.vknTckn,aciklama,"",Math.round(k.kdvHaric*100)/100,sabit.odemeTuru]);});
