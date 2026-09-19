@@ -46,27 +46,41 @@
 
   if (typeof window.require !== 'function') {
     let hksCookie = '';
+    let hksForm = null;
     try {
       hksCookie = sessionStorage.getItem('__HKS_COOKIE__') || '';
+      hksForm = JSON.parse(sessionStorage.getItem('__HKS_FORM__') || 'null');
     } catch {
       /* ignore */
+    }
+
+    function persistHksSession(cookie, form) {
+      if (cookie) {
+        hksCookie = cookie;
+        try {
+          sessionStorage.setItem('__HKS_COOKIE__', cookie);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (form) {
+        hksForm = form;
+        try {
+          sessionStorage.setItem('__HKS_FORM__', JSON.stringify(form));
+        } catch {
+          /* ignore */
+        }
+      }
     }
 
     async function hksCaptcha() {
       const res = await fetch('/api/hks-captcha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookie: hksCookie }),
+        body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
-      if (data && data.cookie) {
-        hksCookie = data.cookie;
-        try {
-          sessionStorage.setItem('__HKS_COOKIE__', hksCookie);
-        } catch {
-          /* ignore */
-        }
-      }
+      if (data && data.cookie) persistHksSession(data.cookie, data.form || null);
       if (!res.ok || !data.success) {
         return {
           success: false,
@@ -76,32 +90,56 @@
       return { success: true, captcha: data.captcha };
     }
 
+    async function hksLogin(payload) {
+      const res = await fetch('/api/hks-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: payload?.username,
+          password: payload?.password,
+          captcha: payload?.captcha,
+          cookie: hksCookie,
+          form: hksForm,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data && data.cookie) persistHksSession(data.cookie, hksForm);
+      if (data && data.success) {
+        try {
+          sessionStorage.setItem('__HKS_LOGGED_IN__', '1');
+        } catch {
+          /* ignore */
+        }
+      }
+      return {
+        success: !!data.success,
+        message: data.message || (data.success ? 'Giris basarili.' : 'Giris basarisiz.'),
+        displayName: data.displayName || '',
+      };
+    }
+
     window.require = function (name) {
       if (name === 'electron') {
         return {
           ipcRenderer: {
             invoke: async (channel, payload) => {
               if (channel === 'init-login' || channel === 'refresh-captcha') {
-                // Yenilemede yeni oturum için cookie temizle
-                if (channel === 'refresh-captcha') {
-                  hksCookie = '';
-                  try {
-                    sessionStorage.removeItem('__HKS_COOKIE__');
-                  } catch {
-                    /* ignore */
-                  }
+                hksCookie = '';
+                hksForm = null;
+                try {
+                  sessionStorage.removeItem('__HKS_COOKIE__');
+                  sessionStorage.removeItem('__HKS_FORM__');
+                  sessionStorage.removeItem('__HKS_LOGGED_IN__');
+                } catch {
+                  /* ignore */
                 }
                 return hksCaptcha();
               }
+              if (channel === 'do-login') {
+                return hksLogin(payload || {});
+              }
               if (channel === 'select-folder' || channel === 'select-hks-file' || channel === 'select-save') {
                 return { canceled: true, msg: 'Bulutta klasör seçimi yakında (dosya yükleme).' };
-              }
-              if (channel === 'do-login') {
-                return {
-                  success: false,
-                  message:
-                    'HKS girişi bulutta henüz tamamlanmadı (captcha geldi). Tam giriş için kısa süre sonra worker eklenecek.',
-                };
               }
               return notify('Bu işlem bulut worker ile çalışacak: ' + channel);
             },
