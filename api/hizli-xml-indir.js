@@ -74,17 +74,44 @@ export default async function handler(req, res) {
     }
 
     const zipBuf = zip.toBuffer();
-    const firma = String(params.firmaAdi || params.vkn || 'xml')
-      .replace(/[^\w\-ğüşıöçĞÜŞİÖÇ ]+/gi, '_')
-      .slice(0, 40)
-      .trim() || 'xml';
-    const filename = `${firma}_${params.yil || ''}-${String(params.ay || '').padStart(2, '0')}.zip`;
+    const rawName = String(params.firmaAdi || params.vkn || 'xml');
+    const asciiName =
+      rawName
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/Ğ/g, 'G')
+        .replace(/Ü/g, 'U')
+        .replace(/Ş/g, 'S')
+        .replace(/İ/g, 'I')
+        .replace(/Ö/g, 'O')
+        .replace(/Ç/g, 'C')
+        .replace(/[^\w.\-]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 40) || 'xml';
+    const filename = `${asciiName}_${params.yil || ''}-${String(params.ay || '').padStart(2, '0')}.zip`;
+    // UTF-8 filename for browsers that support RFC 5987
+    const utf8Name = `${rawName.replace(/[\r\n"]/g, '_')}_${params.yil || ''}-${String(params.ay || '').padStart(2, '0')}.zip`;
+    const filenameStar = encodeURIComponent(utf8Name);
 
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"; filename*=UTF-8''${filenameStar}`,
+    );
     res.setHeader('X-Xml-Count', String(result.xmlSayisi || fileCount));
     res.setHeader('X-Xml-Yeni', String(result.yeni || fileCount));
-    res.setHeader('Access-Control-Expose-Headers', 'X-Xml-Count, X-Xml-Yeni, Content-Disposition');
+    res.setHeader('X-Filename', filename);
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      'X-Xml-Count, X-Xml-Yeni, X-Filename, Content-Disposition',
+    );
     res.status(200).send(zipBuf);
   } catch (err) {
     console.error('[hizli-xml-indir]', err);

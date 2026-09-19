@@ -85,6 +85,8 @@ export default function ToolEmbed({ toolId }) {
       }
 
       if (ev.data.type === 'musavirim-download-xml') {
+        // Eski parent-indirme yolu; yeni akış iframe içinde (showSaveFilePicker).
+        // Geriye dönük uyumluluk için bırakıldı.
         const { reqId, form } = ev.data;
         const reply = (result) => {
           if (iframeRef.current?.contentWindow) {
@@ -113,9 +115,7 @@ export default function ToolEmbed({ toolId }) {
             return;
           }
           const blob = await res.blob();
-          const disp = res.headers.get('Content-Disposition') || '';
-          const m = disp.match(/filename="?([^";]+)"?/i);
-          const filename = (m && m[1]) || 'xml-indir.zip';
+          const filename = res.headers.get('X-Filename') || 'xml-indir.zip';
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;

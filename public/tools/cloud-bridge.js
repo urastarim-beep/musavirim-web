@@ -161,25 +161,34 @@
     },
     async downloadXml(form) {
       try {
-        if (window.parent && window.parent !== window) {
-          return await new Promise((resolve) => {
-            const reqId = 'xml-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-            function onMsg(ev) {
-              if (!ev.data || ev.data.type !== 'musavirim-download-result') return;
-              if (ev.data.reqId !== reqId) return;
-              window.removeEventListener('message', onMsg);
-              resolve(ev.data.result || { ok: false, message: 'Indirme hatasi.' });
+        const suggestBase = String(form?.firmaAdi || form?.vkn || 'xml')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[ğüşıöçĞÜŞİÖÇ]/g, (c) =>
+            ({ ğ: 'g', ü: 'u', ş: 's', ı: 'i', ö: 'o', ç: 'c', Ğ: 'G', Ü: 'U', Ş: 'S', İ: 'I', Ö: 'O', Ç: 'C' })[c],
+          )
+          .replace(/[^\w.\-]+/g, '_')
+          .slice(0, 40) || 'xml';
+        const suggestedName = `${suggestBase}_${form?.yil || ''}-${String(form?.ay || '').padStart(2, '0')}.zip`;
+
+        // Tıklama anında dosya gezgini (Chrome / Edge)
+        let fileHandle = null;
+        if (typeof window.showSaveFilePicker === 'function') {
+          try {
+            fileHandle = await window.showSaveFilePicker({
+              suggestedName,
+              types: [
+                {
+                  description: 'ZIP arşivi',
+                  accept: { 'application/zip': ['.zip'] },
+                },
+              ],
+            });
+          } catch (pickErr) {
+            if (pickErr && pickErr.name === 'AbortError') {
+              return { ok: false, message: 'Kaydetme iptal edildi.' };
             }
-            window.addEventListener('message', onMsg);
-            window.parent.postMessage(
-              { type: 'musavirim-download-xml', reqId, form: form || {} },
-              '*',
-            );
-            setTimeout(() => {
-              window.removeEventListener('message', onMsg);
-              resolve({ ok: false, message: 'Indirme zaman asimina ugradi (60 sn).' });
-            }, 60_000);
-          });
+          }
         }
 
         const res = await fetch('/api/hizli-xml-indir', {
@@ -198,14 +207,25 @@
           }
           return { ok: false, message };
         }
-        if (!ctype.includes('zip') && !ctype.includes('octet-stream')) {
-          const j = await res.json().catch(() => null);
-          return { ok: false, message: (j && j.message) || 'Beklenmeyen yanit' };
-        }
+
         const blob = await res.blob();
-        const disp = res.headers.get('Content-Disposition') || '';
-        const m = disp.match(/filename=\"?([^\";]+)\"?/i);
-        const filename = (m && m[1]) || 'xml-indir.zip';
+        const filename = res.headers.get('X-Filename') || suggestedName;
+        const xmlSayisi = Number(res.headers.get('X-Xml-Count') || 0);
+        const yeni = Number(res.headers.get('X-Xml-Yeni') || 0);
+
+        if (fileHandle) {
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return {
+            ok: true,
+            xmlSayisi,
+            yeni,
+            message: 'ZIP secilen konuma kaydedildi.',
+          };
+        }
+
+        // Fallback: klasik Indirilenler
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -216,8 +236,8 @@
         URL.revokeObjectURL(url);
         return {
           ok: true,
-          xmlSayisi: Number(res.headers.get('X-Xml-Count') || 0),
-          yeni: Number(res.headers.get('X-Xml-Yeni') || 0),
+          xmlSayisi,
+          yeni,
           message: 'ZIP Indirilenler klasorune kaydedildi.',
         };
       } catch (err) {
