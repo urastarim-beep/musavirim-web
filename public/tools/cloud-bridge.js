@@ -45,13 +45,63 @@
   };
 
   if (typeof window.require !== 'function') {
+    let hksCookie = '';
+    try {
+      hksCookie = sessionStorage.getItem('__HKS_COOKIE__') || '';
+    } catch {
+      /* ignore */
+    }
+
+    async function hksCaptcha() {
+      const res = await fetch('/api/hks-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cookie: hksCookie }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data && data.cookie) {
+        hksCookie = data.cookie;
+        try {
+          sessionStorage.setItem('__HKS_COOKIE__', hksCookie);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!res.ok || !data.success) {
+        return {
+          success: false,
+          message: (data && data.message) || 'Captcha yüklenemedi',
+        };
+      }
+      return { success: true, captcha: data.captcha };
+    }
+
     window.require = function (name) {
       if (name === 'electron') {
         return {
           ipcRenderer: {
-            invoke: async (channel) => {
+            invoke: async (channel, payload) => {
+              if (channel === 'init-login' || channel === 'refresh-captcha') {
+                // Yenilemede yeni oturum için cookie temizle
+                if (channel === 'refresh-captcha') {
+                  hksCookie = '';
+                  try {
+                    sessionStorage.removeItem('__HKS_COOKIE__');
+                  } catch {
+                    /* ignore */
+                  }
+                }
+                return hksCaptcha();
+              }
               if (channel === 'select-folder' || channel === 'select-hks-file' || channel === 'select-save') {
                 return { canceled: true, msg: 'Bulutta klasör seçimi yakında (dosya yükleme).' };
+              }
+              if (channel === 'do-login') {
+                return {
+                  success: false,
+                  message:
+                    'HKS girişi bulutta henüz tamamlanmadı (captcha geldi). Tam giriş için kısa süre sonra worker eklenecek.',
+                };
               }
               return notify('Bu işlem bulut worker ile çalışacak: ' + channel);
             },
