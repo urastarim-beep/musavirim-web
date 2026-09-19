@@ -113,6 +113,7 @@
       }
       return {
         success: !!data.success,
+        loggedIn: !!data.success,
         message: data.message || (data.success ? 'Giris basarili.' : 'Giris basarisiz.'),
         displayName: data.displayName || '',
       };
