@@ -1,16 +1,21 @@
 {
   "name": "musavirim-worker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "postinstall": "npx playwright install chromium || true"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "@whiskeysockets/baileys": "6.7.9",
+    "adm-zip": "^0.5.16",
     "playwright": "^1.49.0",
     "qrcode": "^1.5.4"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

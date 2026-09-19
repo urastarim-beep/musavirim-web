@@ -138,12 +138,14 @@ create policy "job kendi guncelle" on jobs
 create policy "ayar kendi" on arac_ayarlari
   for all using (user_id = auth.uid() or is_admin());
 
--- whatsapp_durum — sadece admin okur
-create policy "wa admin okur" on whatsapp_durum
-  for select using (is_admin());
+-- whatsapp_durum — admin + authenticated okur (QR için)
+drop policy if exists "wa admin okur" on whatsapp_durum;
+create policy "wa authenticated okur" on whatsapp_durum
+  for select using (auth.role() = 'authenticated' or is_admin());
 
 create policy "wa admin yazar" on whatsapp_durum
   for update using (is_admin());
+-- Not: Worker service_role ile yazar (RLS bypass).
 
 -- ============================================
 -- STORAGE: Dashboard > Storage'dan private bucket oluşturun: musavirim-dosyalar

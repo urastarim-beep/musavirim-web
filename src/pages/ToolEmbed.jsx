@@ -136,6 +136,83 @@ export default function ToolEmbed({ toolId }) {
         return;
       }
 
+      if (ev.data.type === 'musavirim-create-job') {
+        const { reqId, tip, payload } = ev.data;
+        const reply = (result) => {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'musavirim-job-result', reqId, result },
+            '*',
+          );
+        };
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) {
+            reply({ ok: false, msg: 'Oturum yok' });
+            return;
+          }
+          const { data, error } = await supabase
+            .from('jobs')
+            .insert({
+              tip,
+              payload: payload || {},
+              user_id: user.id,
+              durum: 'bekliyor',
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          reply({ ok: true, job: data });
+        } catch (e) {
+          reply({ ok: false, msg: e.message || String(e) });
+        }
+        return;
+      }
+
+      if (ev.data.type === 'musavirim-get-job') {
+        const { reqId, jobId } = ev.data;
+        const reply = (result) => {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'musavirim-job-result', reqId, result },
+            '*',
+          );
+        };
+        try {
+          const { data, error } = await supabase.from('jobs').select('*').eq('id', jobId).single();
+          if (error) throw error;
+          reply({ ok: true, job: data });
+        } catch (e) {
+          reply({ ok: false, msg: e.message || String(e) });
+        }
+        return;
+      }
+
+      if (ev.data.type === 'musavirim-wa-status') {
+        const { reqId } = ev.data;
+        const reply = (result) => {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'musavirim-job-result', reqId, result },
+            '*',
+          );
+        };
+        try {
+          const { data, error } = await supabase.from('whatsapp_durum').select('*').eq('id', 1).maybeSingle();
+          if (error) throw error;
+          const d = data || {};
+          reply({
+            ok: true,
+            status: d.bagli ? 'hazir' : d.qr_data ? 'qr' : 'kapali',
+            qrDataUrl: d.qr_data || null,
+            hazir: !!d.bagli,
+            msg: d.mesaj || '',
+          });
+        } catch (e) {
+          reply({ ok: false, msg: e.message || String(e), status: 'kapali' });
+        }
+        return;
+      }
+
       if (ev.data.type !== 'musavirim-save') return;
       const { arac, payload } = ev.data;
       const {

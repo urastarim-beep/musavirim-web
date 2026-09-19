@@ -44,6 +44,47 @@
     return { ok: false, msg: String(msg) };
   };
 
+  function parentRpc(type, extra = {}, timeoutMs = 120000) {
+    return new Promise((resolve) => {
+      if (!window.parent || window.parent === window) {
+        resolve({ ok: false, msg: 'Parent yok' });
+        return;
+      }
+      const reqId = 'rpc-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+      function onMsg(ev) {
+        if (!ev.data || ev.data.type !== 'musavirim-job-result') return;
+        if (ev.data.reqId !== reqId) return;
+        window.removeEventListener('message', onMsg);
+        resolve(ev.data.result || { ok: false });
+      }
+      window.addEventListener('message', onMsg);
+      window.parent.postMessage({ type, reqId, ...extra }, '*');
+      setTimeout(() => {
+        window.removeEventListener('message', onMsg);
+        resolve({ ok: false, msg: 'Zaman asimina ugradi' });
+      }, timeoutMs);
+    });
+  }
+
+  async function createJob(tip, payload) {
+    return parentRpc('musavirim-create-job', { tip, payload });
+  }
+
+  async function waitJob(jobId, timeoutMs = 180000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const r = await parentRpc('musavirim-get-job', { jobId }, 15000);
+      if (!r.ok) return r;
+      const d = r.job?.durum;
+      if (d === 'tamam') return { ok: true, job: r.job, ...(r.job.sonuc || {}) };
+      if (d === 'hata' || d === 'iptal') {
+        return { ok: false, msg: r.job?.hata_mesaji || 'Is hata ile bitti', job: r.job };
+      }
+      await new Promise((x) => setTimeout(x, 2000));
+    }
+    return { ok: false, msg: 'Is hala calisiyor / worker ayakta mi?' };
+  }
+
   if (typeof window.require !== 'function') {
     let hksCookie = '';
     let hksForm = null;
@@ -139,8 +180,31 @@
               if (channel === 'do-login') {
                 return hksLogin(payload || {});
               }
-              if (channel === 'close-popup') {
-                return { success: true };
+              if (channel === 'export-excel') {
+                let cookie = '';
+                try {
+                  cookie = sessionStorage.getItem('__HKS_COOKIE__') || '';
+                } catch {
+                  /* ignore */
+                }
+                if (!cookie) {
+                  return { success: false, message: 'Once HKS girisi yapin (cookie yok).' };
+                }
+                const created = await createJob('hks_export', {
+                  cookie,
+                  kunyeTuru: payload?.kunyeTuru,
+                  baslangicTarihi: payload?.baslangicTarihi,
+                  bitisTarihi: payload?.bitisTarihi,
+                  filterName: payload?.filterName,
+                });
+                if (!created.ok) return { success: false, message: created.msg || 'Job olusturulamadi' };
+                const done = await waitJob(created.job.id, 300000);
+                if (!done.ok) return { success: false, message: done.msg || 'Export hatasi' };
+                return {
+                  success: true,
+                  message: done.message || 'HKS export worker tamamlandi (detay gelistirme sureci).',
+                  ...done,
+                };
               }
               if (channel === 'select-folder' || channel === 'select-hks-file' || channel === 'select-save') {
                 return { canceled: true, msg: 'Bulutta klasör seçimi yakında (dosya yükleme).' };
@@ -376,17 +440,39 @@
       return () => {};
     },
     async waStatus() {
-      return { ok: true, status: 'bulut-kapali', msg: 'WhatsApp bulutta kapali' };
+      const r = await parentRpc('musavirim-wa-status', {}, 15000);
+      if (!r.ok) return { ok: true, status: 'kapali', msg: r.msg };
+      return r;
     },
     async waStart() {
-      return {
-        ok: true,
-        status: 'bulut-kapali',
-        msg: 'WhatsApp bulutta su an kapali (ayri worker gerekir). Makbuz onizleme calisir.',
-      };
+      const created = await createJob('wa_start', {});
+      if (!created.ok) {
+        return { ok: false, status: 'hata', msg: created.msg || 'Worker job olusturulamadi. Worker calisiyor mu?' };
+      }
+      const start = Date.now();
+      while (Date.now() - start < 90000) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const st = await parentRpc('musavirim-wa-status', {}, 10000);
+        if (st.hazir || st.status === 'hazir') {
+          return { ok: true, status: 'hazir', hazir: true, qrDataUrl: null };
+        }
+        if (st.qrDataUrl || st.status === 'qr') {
+          return { ok: true, status: 'qr', qrDataUrl: st.qrDataUrl, hazir: false };
+        }
+        const job = await parentRpc('musavirim-get-job', { jobId: created.job.id }, 10000);
+        if (job.job?.durum === 'hata') {
+          return { ok: false, status: 'hata', msg: job.job.hata_mesaji || 'wa_start hatasi' };
+        }
+        if (job.job?.durum === 'tamam' && job.job.sonuc) {
+          return { ok: true, ...job.job.sonuc };
+        }
+      }
+      return { ok: true, status: 'baglaniyor', msg: 'Worker QR bekleniyor — Ayarlar sekmesini acik tutun.' };
     },
     async waLogout() {
-      return { ok: true, status: 'bulut-kapali' };
+      const created = await createJob('wa_logout', {});
+      if (!created.ok) return { ok: false, msg: created.msg };
+      return waitJob(created.job.id, 60000);
     },
     async metin(opts) {
       try {
@@ -456,17 +542,48 @@
         msg: 'WhatsApp Web acildi. Makbuz gorselini ekrandan kaydedip yapistirabilirsiniz. Otomatik gonderim icin worker gerekir.',
       };
     },
-    async cek() {
-      return {
-        ok: false,
-        msg: 'IVD/EBYN sorgusu bulutta henuz yok (Playwright worker gerekir). Masaustu Tahakkuk ile cekebilirsiniz.',
-      };
+    async cek(opts) {
+      const d = tahakkukData();
+      const mukellef =
+        (d.mukellefler || []).find((m) => m.id === (opts?.mukellefId || d.aktifId)) ||
+        (d.mukellefler || [])[0];
+      const created = await createJob('tahakkuk_cek', {
+        ofis: d.ofis || {},
+        mukellef,
+        aylar: opts?.aylar,
+        yil: opts?.yil,
+        ay: opts?.ay,
+        donemEtiket: opts?.donemEtiket,
+        ivdCek: !!opts?.ivdCek,
+        whatsappTip: mukellef?.whatsappTip,
+      });
+      if (!created.ok) return { ok: false, msg: created.msg || 'Job olusturulamadi — worker ayakta mi?' };
+      const done = await waitJob(created.job.id, 300000);
+      if (!done.ok) return { ok: false, msg: done.msg };
+      return { ok: true, ...done, msg: `Sorgu tamam (${(done.kalemler || []).length} kalem)` };
     },
-    async cekHepsi() {
-      return {
-        ok: false,
-        msg: 'Toplu sorgu bulutta henuz yok. Worker eklenecek.',
-      };
+    async cekHepsi(opts) {
+      const d = tahakkukData();
+      const list = d.mukellefler || [];
+      const sonuclar = [];
+      for (const m of list) {
+        const created = await createJob('tahakkuk_cek', {
+          ofis: d.ofis || {},
+          mukellef: m,
+          aylar: opts?.aylar,
+          yil: opts?.yil,
+          ay: opts?.ay,
+          donemEtiket: opts?.donemEtiket,
+          ivdCek: !!opts?.ivdCek,
+        });
+        if (!created.ok) {
+          sonuclar.push({ id: m.id, ok: false, msg: created.msg });
+          continue;
+        }
+        const done = await waitJob(created.job.id, 300000);
+        sonuclar.push({ id: m.id, ok: done.ok, ...(done.ok ? done : { msg: done.msg }) });
+      }
+      return { ok: true, sonuclar, msg: `${sonuclar.filter((s) => s.ok).length}/${list.length} tamam` };
     },
     async sgkCek() {
       return { ok: false, msg: 'SGK cekim bulutta henuz yok (worker gerekir).' };

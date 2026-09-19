@@ -1,19 +1,18 @@
-/**
- * Muşavirim Worker — Railway / VPS üzerinde sürekli çalışır.
- * Jobs tablosundan bekleyen işleri alır; HKS / WhatsApp / XML işler.
- *
- * Env:
- *   SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
- *   POLL_MS (opsiyonel, varsayılan 4000)
- */
-import { createClient } from '@supabase/supabase-js';
-import { mkdir, writeFile } from 'fs/promises';
+import { createRequire } from 'module';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { mkdir } from 'fs/promises';
+import http from 'http';
+import { createClient } from '@supabase/supabase-js';
+
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const POLL_MS = Number(process.env.POLL_MS || 4000);
+const POLL_MS = Number(process.env.POLL_MS || 3000);
+const PORT = Number(process.env.PORT || 8080);
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 
 if (!url || !key) {
   console.error('SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY gerekli.');
@@ -24,6 +23,34 @@ const supabase = createClient(url, key, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+const { WhatsappClient } = require('./lib/whatsappClient.cjs');
+const ebynApi = require('./lib/ebynApi.cjs');
+const ivdApi = require('./lib/ivdApi.cjs');
+const { olusturMetin } = require('./lib/metin.cjs');
+
+let waClient = null;
+
+async function syncWaState(state) {
+  await supabase.from('whatsapp_durum').upsert({
+    id: 1,
+    bagli: state?.status === 'hazir',
+    qr_data: state?.qrDataUrl || null,
+    mesaj: state?.hata || state?.status || null,
+    son_guncelleme: new Date().toISOString(),
+  });
+}
+
+function getWa() {
+  if (!waClient) {
+    const authDir = path.join(DATA_DIR, 'whatsapp-auth');
+    waClient = new WhatsappClient(authDir);
+    waClient.on('state', (s) => {
+      syncWaState(s).catch((e) => console.error('wa sync', e.message));
+    });
+  }
+  return waClient;
+}
+
 async function claimJob() {
   const { data: jobs, error } = await supabase
     .from('jobs')
@@ -31,7 +58,6 @@ async function claimJob() {
     .eq('durum', 'bekliyor')
     .order('created_at', { ascending: true })
     .limit(1);
-
   if (error) throw error;
   const job = jobs?.[0];
   if (!job) return null;
@@ -43,7 +69,6 @@ async function claimJob() {
     .eq('durum', 'bekliyor')
     .select()
     .maybeSingle();
-
   if (updErr) throw updErr;
   return claimed;
 }
@@ -60,47 +85,234 @@ async function finishJob(id, ok, sonuc, hata) {
     .eq('id', id);
 }
 
-async function handleHks(job) {
-  // Playwright entegrasyonu: masaüstü apps/hks mantığı buraya taşınacak.
-  // Şimdilik iskelet — job payload doğrulanır ve sonuç yazılır.
-  const { vkn, kullanici } = job.payload || {};
-  if (!vkn || !kullanici) throw new Error('vkn ve kullanici gerekli');
+async function handleWaStart() {
+  const client = getWa();
+  const state = await client.start();
+  await syncWaState(state);
+  return { ok: true, ...state };
+}
 
-  // Placeholder: gerçek HKS otomasyonu sonraki adımda bağlanacak
-  return {
-    not: 'HKS Playwright otomasyonu worker iskeletine bağlanacak',
+async function handleWaLogout() {
+  const client = getWa();
+  if (typeof client.stop === 'function') client.stop();
+  await syncWaState({ status: 'kapali', qrDataUrl: null });
+  return { ok: true, status: 'kapali' };
+}
+
+async function handleWaGonder(job) {
+  const { telefon, metin, imageBase64 } = job.payload || {};
+  if (!telefon) throw new Error('telefon gerekli');
+  const client = getWa();
+  if (client.status !== 'hazir') {
+    throw new Error('WhatsApp bagli degil. Once wa_start ile QR okutun.');
+  }
+  if (imageBase64 && typeof client.sendImage === 'function') {
+    const buf = Buffer.from(String(imageBase64).replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    await client.sendImage(telefon, buf);
+    return { ok: true, tip: 'image', telefon };
+  }
+  if (!metin) throw new Error('metin veya imageBase64 gerekli');
+  await client.sendText(telefon, metin);
+  return { ok: true, tip: 'text', telefon };
+}
+
+async function handleTahakkukCek(job) {
+  const p = job.payload || {};
+  const ofis = p.ofis || {};
+  const mukellef = p.mukellef || {};
+  const aylarRaw = Array.isArray(p.aylar) && p.aylar.length ? p.aylar : [p.ay || new Date().getMonth() + 1];
+  const yil = Number(p.yil) || new Date().getFullYear();
+  const aylar = aylarRaw.map((a) =>
+    typeof a === 'object' && a != null ? { ay: Number(a.ay), yil: Number(a.yil || yil) } : { ay: Number(a), yil },
+  );
+  const vkn = String(mukellef.vkn || '').replace(/\D/g, '');
+  if (!vkn) throw new Error('mukellef.vkn gerekli');
+
+  const kalemler = [];
+  const loglar = [];
+
+  if (ofis.ebynKullanici && ofis.ebynParola && ofis.ebynSifre) {
+    loglar.push('EBYN basliyor…');
+    const ebyn = await ebynApi.getTahakkuklar({
+      kullanici: ofis.ebynKullanici,
+      parola: ofis.ebynParola,
+      sifre: ofis.ebynSifre,
+      vknTckn: vkn,
+      aylar,
+    });
+    const list = ebyn?.kalemler || ebyn?.items || [];
+    for (const k of list) kalemler.push({ ...k, kaynak: 'ebyn' });
+    loglar.push(`EBYN: ${list.length} kalem`);
+  } else {
+    loglar.push('EBYN ofis bilgisi yok — atlandi');
+  }
+
+  if (p.ivdCek && mukellef.ivdKullanici && mukellef.ivdSifre) {
+    loglar.push('IVD basliyor…');
+    const ivd = await ivdApi.getBorcDurumu(mukellef.ivdKullanici, mukellef.ivdSifre);
+    const list = ivd?.kalemler || ivd?.borclar || [];
+    for (const k of list) kalemler.push({ ...k, kaynak: 'ivd' });
+    loglar.push(`IVD: ${list.length} kalem`);
+  }
+
+  const metin = olusturMetin({
+    tip: p.whatsappTip || mukellef.whatsappTip || 'makbuz',
+    firmaAdi: mukellef.ad,
     vkn,
-    kullanici,
+    donemEtiket: p.donemEtiket || '',
+    kalemler,
+  });
+
+  return {
+    ok: true,
+    kalemler,
+    metin,
+    loglar,
+    mukellefId: mukellef.id,
+    vkn,
   };
 }
 
 async function handleHizliXml(job) {
-  const { apiKey, baslangic, bitis } = job.payload || {};
-  if (!apiKey) throw new Error('apiKey gerekli');
-  return {
-    not: 'Hızlı XML API indirme worker iskeletine bağlanacak',
-    baslangic,
-    bitis,
-  };
+  // Parent repo server libs (CommonJS)
+  const portalPath = path.join(__dirname, '..', 'server', 'hizli-xml', 'lib', 'portal', 'index.cjs');
+  const { portalGetir, resolveIndirmeParams } = require(portalPath);
+  const os = await import('os');
+  const fs = await import('fs');
+  const AdmZip = require('adm-zip');
+
+  const tmpRoot = path.join(os.tmpdir(), 'musavirim-worker-hizli', String(Date.now()));
+  fs.mkdirSync(tmpRoot, { recursive: true });
+  try {
+    const params = resolveIndirmeParams({ ...job.payload, indirmeKlasoru: tmpRoot });
+    const portal = portalGetir(params.portal || 'hizli');
+    const result = await portal.indirFatura(params, { onLog: () => {} });
+    const zip = new AdmZip();
+    let fileCount = 0;
+    function addDir(dir, prefix = '') {
+      if (!fs.existsSync(dir)) return;
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (fs.statSync(full).isDirectory()) addDir(full, path.join(prefix, name));
+        else if (/\.(xml|zip)$/i.test(name)) {
+          zip.addLocalFile(full, prefix);
+          fileCount += 1;
+        }
+      }
+    }
+    addDir(result.klasor || tmpRoot);
+    const zipBuf = zip.toBuffer();
+    const filename = `xml_${params.yil || ''}-${params.ay || ''}.zip`;
+    const storagePath = `${job.user_id}/hizli-xml/${job.id}-${filename}`;
+    const { error: upErr } = await supabase.storage
+      .from('musavirim-dosyalar')
+      .upload(storagePath, zipBuf, { contentType: 'application/zip', upsert: true });
+    if (upErr) {
+      // bucket yoksa base64 sonuçta dön (küçük dosyalar)
+      return {
+        ok: true,
+        xmlSayisi: result.xmlSayisi || fileCount,
+        yeni: result.yeni || fileCount,
+        zipBase64: zipBuf.toString('base64'),
+        filename,
+        storageUyari: upErr.message,
+      };
+    }
+    return {
+      ok: true,
+      xmlSayisi: result.xmlSayisi || fileCount,
+      yeni: result.yeni || fileCount,
+      storagePath,
+      filename,
+    };
+  } finally {
+    try {
+      fs.rmSync(tmpRoot, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
-async function handleWa(job) {
-  const { telefon, metin } = job.payload || {};
-  if (!telefon || !metin) throw new Error('telefon ve metin gerekli');
+async function handleHksExport(job) {
+  // Playwright ile cookie oturumu — export masaüstü register.js akışına benzer
+  const { chromium } = await import('playwright');
+  const p = job.payload || {};
+  const cookieHeader = String(p.cookie || '');
+  if (!cookieHeader) throw new Error('HKS cookie gerekli — once webden giris yapin');
 
-  await supabase
-    .from('whatsapp_durum')
-    .upsert({
-      id: 1,
-      bagli: false,
-      mesaj: 'Baileys oturumu henüz bağlanmadı — QR eşleme sonraki adım',
-      son_guncelleme: new Date().toISOString(),
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  try {
+    const context = await browser.newContext({
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      ignoreHTTPSErrors: true,
     });
+    const cookies = cookieHeader.split(';').map((part) => {
+      const [name, ...rest] = part.trim().split('=');
+      return {
+        name: name.trim(),
+        value: rest.join('=').trim(),
+        domain: 'hks.hal.gov.tr',
+        path: '/',
+      };
+    }).filter((c) => c.name && c.value);
+    await context.addCookies(cookies);
 
-  return {
-    not: 'Baileys gönderimi worker iskeletine bağlanacak',
-    telefon,
-  };
+    const page = await context.newPage();
+    const BILDIRIM = 'https://hks.hal.gov.tr/Pages/Bildirimci/BildirimListesi.aspx';
+    await page.goto(BILDIRIM, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const html = await page.content();
+    if (/Login\.aspx|txtCaptchaCodeTextBox/i.test(html) || /Login\.aspx/i.test(page.url())) {
+      throw new Error('HKS oturumu gecersiz — webden tekrar giris yapin');
+    }
+
+    // Künye / tarih / filtre — mümkün olduğunca doldur
+    const kunyeTuru = p.kunyeTuru || 'Malın Geliş Künyesi';
+    try {
+      await page.selectOption('#MainContent_ddlKunyeTuru', { label: kunyeTuru });
+    } catch {
+      /* ignore */
+    }
+    if (p.baslangicTarihi) {
+      const el = await page.$('#x\\:1558800468\\.0\\:mkr\\:3');
+      if (el) {
+        await el.click();
+        await el.evaluate((n) => { n.value = ''; });
+        await el.type(String(p.baslangicTarihi).replace(/\//g, '.'), { delay: 0 });
+      }
+    }
+    if (p.bitisTarihi) {
+      const el = await page.$('#x\\:815955057\\.0\\:mkr\\:3');
+      if (el) {
+        await el.click();
+        await el.evaluate((n) => { n.value = ''; });
+        await el.type(String(p.bitisTarihi).replace(/\//g, '.'), { delay: 0 });
+      }
+    }
+    const search = await page.$('#MainContent_btnSearch');
+    if (search) {
+      await search.click();
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(1500);
+    }
+
+    const filterName = String(p.filterName || '').trim();
+    const rowCount = await page.$$eval('table tr', (rows) => rows.length);
+    return {
+      ok: true,
+      message: 'HKS bildirim sayfasi acildi; detayli Excel export sonraki iterasyonda genisletilecek.',
+      filterName,
+      rowCount,
+      url: page.url(),
+      not: 'Tam Excel scrapesi masaustu export-excel ile ayni seviyeye getirilecek',
+    };
+  } finally {
+    await browser.close();
+  }
 }
 
 async function processJob(job) {
@@ -108,27 +320,52 @@ async function processJob(job) {
   try {
     let sonuc;
     switch (job.tip) {
-      case 'hks_indir':
-        sonuc = await handleHks(job);
+      case 'wa_start':
+        sonuc = await handleWaStart();
+        break;
+      case 'wa_logout':
+        sonuc = await handleWaLogout();
+        break;
+      case 'wa_gonder':
+        sonuc = await handleWaGonder(job);
+        break;
+      case 'tahakkuk_cek':
+        sonuc = await handleTahakkukCek(job);
         break;
       case 'hizli_xml_indir':
         sonuc = await handleHizliXml(job);
         break;
-      case 'wa_gonder':
-        sonuc = await handleWa(job);
+      case 'hks_export':
+      case 'hks_indir':
+        sonuc = await handleHksExport(job);
         break;
       default:
         throw new Error('Bilinmeyen tip: ' + job.tip);
     }
     await finishJob(job.id, true, sonuc, null);
+    console.log('job tamam', job.id);
   } catch (err) {
-    console.error(err);
+    console.error('job hata', job.id, err);
     await finishJob(job.id, false, null, err.message || String(err));
   }
 }
 
+function startHealthServer() {
+  const server = http.createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        wa: waClient ? waClient.status : 'kapali',
+        ts: Date.now(),
+      }),
+    );
+  });
+  server.listen(PORT, () => console.log('health :' + PORT));
+}
+
 async function loop() {
-  console.log('musavirim-worker dinliyor…');
+  console.log('musavirim-worker dinliyor…', { POLL_MS, DATA_DIR });
   for (;;) {
     try {
       const job = await claimJob();
@@ -140,6 +377,7 @@ async function loop() {
   }
 }
 
-await mkdir(path.join(process.cwd(), 'data'), { recursive: true });
-await writeFile(path.join(process.cwd(), 'data', '.keep'), '');
+await mkdir(DATA_DIR, { recursive: true });
+await mkdir(path.join(DATA_DIR, 'whatsapp-auth'), { recursive: true });
+startHealthServer();
 loop();

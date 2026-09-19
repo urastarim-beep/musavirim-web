@@ -41,19 +41,26 @@ npm run dev
    - `SUPABASE_SERVICE_ROLE_KEY` (sadece server/api için; anon’u tarayıcıya koyun)
 4. Deploy.
 
-## 4. Worker (HKS / WhatsApp)
+## 4. Worker (HKS / WhatsApp / Tahakkuk)
 
 [`worker/README.md`](worker/README.md) — Railway’de sürekli süreç.
+
+1. Railway → GitHub `musavirim-web` → **Root Directory: `worker`**
+2. Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DATA_DIR=/data`
+3. Volume mount: `/data` (WhatsApp oturumu)
+4. Deploy sonrası site: Tahakkuk → Ayarlar → Bağlan (QR), Sorgula; HKS giriş sonrası export job’a düşer
+
+Yerel: `cd worker && npm install && npm start` (aynı env).
 
 ## Araçlar
 
 | Araç | Bulut durumu |
 |------|----------------|
-| HKS | Job kuyruğu → worker (Playwright bağlanacak) |
-| Hızlı XML | Job kuyruğu → worker |
-| Muhasebe Fişi | İstemci iskeleti |
-| Uyumsoft → Unideva | Excel okuma iskeleti |
-| Stok Kontrol | İstemci iskeleti |
-| Tahakkuk / WA | Job kuyruğu → Baileys worker |
+| HKS | Captcha + giriş (API); export → worker Playwright |
+| Hızlı XML | Vercel API + worker (ZIP) |
+| Muhasebe Fişi | Tam UI + bulut kayıt |
+| Uyumsoft → Unideva | İstemci dönüştürücü |
+| Stok Kontrol | UI (motor worker/sonraki) |
+| Tahakkuk / WA | EBYN/IVD + Baileys QR → worker |
 
 Masaüstü `Musavirim.exe` geçiş süresince yedek olarak kalabilir.
