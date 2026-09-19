@@ -200,9 +200,18 @@
                 if (!created.ok) return { success: false, message: created.msg || 'Job olusturulamadi' };
                 const done = await waitJob(created.job.id, 300000);
                 if (!done.ok) return { success: false, message: done.msg || 'Export hatasi' };
+                if (!done.excelBase64 && !done.storagePath && !done.downloadUrl) {
+                  return {
+                    success: false,
+                    message:
+                      done.message ||
+                      'HKS sayfasi acildi ama Excel henuz uretilmiyor. Worker scrape tamamlaninca eklenecek.',
+                    rowCount: done.rowCount,
+                  };
+                }
                 return {
                   success: true,
-                  message: done.message || 'HKS export worker tamamlandi (detay gelistirme sureci).',
+                  message: done.message || 'HKS Excel hazir.',
                   ...done,
                 };
               }
@@ -555,22 +564,54 @@
     async makbuzGonder(opts) {
       const tel = String(opts?.telefon || '').trim();
       if (!tel) return { ok: false, msg: 'Telefon yok.' };
-      const url = M().whatsappUrl
-        ? M().whatsappUrl(tel, '')
-        : `https://wa.me/${tel.replace(/\D/g, '')}`;
-      window.open(url, '_blank', 'noopener');
-      return {
-        ok: true,
-        msg: 'WhatsApp Web acildi. Makbuz gorselini ekrandan kaydedip yapistirabilirsiniz. Otomatik gonderim icin worker gerekir.',
-      };
+      let imageBase64 = opts?.imageBase64 || null;
+      if (!imageBase64) {
+        try {
+          const card = document.getElementById('makbuzCard');
+          if (card) {
+            if (typeof window.html2canvas !== 'function') {
+              await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('html2canvas yuklenemedi'));
+                document.head.appendChild(s);
+              });
+            }
+            const canvas = await window.html2canvas(card, { backgroundColor: '#ffffff', scale: 2 });
+            imageBase64 = canvas.toDataURL('image/png');
+          }
+        } catch (err) {
+          console.warn('makbuz capture', err);
+        }
+      }
+      if (!imageBase64 && opts?.makbuz) {
+        const m = opts.makbuz;
+        const lines = (m.satirlar || [])
+          .map((k) => `${k.donem || ''} ${k.aciklama || ''}: ${k.tutar ?? ''}`)
+          .join('\n');
+        const metin = `MUHASEBE ODEME BILDIRIM MAKBUZU\n${m.musteri || ''}\nTarih: ${m.tarih || ''}\n${lines}\nTOPLAM: ${m.toplamFormat || m.toplam || ''}`;
+        const created = await createJob('wa_gonder', { telefon: tel, metin });
+        if (!created.ok) return { ok: false, msg: created.msg || 'Worker job olusturulamadi' };
+        return waitJob(created.job.id, 120000);
+      }
+      if (!imageBase64) {
+        return { ok: false, msg: 'Makbuz gorseli olusturulamadi. Once Onizleme ac.' };
+      }
+      const created = await createJob('wa_gonder', { telefon: tel, imageBase64 });
+      if (!created.ok) return { ok: false, msg: created.msg || 'Worker job olusturulamadi' };
+      const done = await waitJob(created.job.id, 120000);
+      if (!done.ok) return { ok: false, msg: done.msg || 'Gonderim basarisiz' };
+      return { ok: true, msg: `Makbuz WhatsApp ile gonderildi: ${tel}`, gonderildi: true };
     },
     async cek(opts) {
       const d = tahakkukData();
       const mukellef =
-        (d.mukellefler || []).find((m) => m.id === (opts?.mukellefId || d.aktifId)) ||
+        (d.mukellefler || []).find((m) => m.id === (opts?.mukellefId || opts?.mukellef?.id || d.aktifId)) ||
+        opts?.mukellef ||
         (d.mukellefler || [])[0];
       const created = await createJob('tahakkuk_cek', {
-        ofis: d.ofis || {},
+        ofis: opts?.ofis || d.ofis || {},
         mukellef,
         aylar: opts?.aylar,
         yil: opts?.yil,
@@ -582,15 +623,53 @@
       if (!created.ok) return { ok: false, msg: created.msg || 'Job olusturulamadi — worker ayakta mi?' };
       const done = await waitJob(created.job.id, 300000);
       if (!done.ok) return { ok: false, msg: done.msg };
-      return { ok: true, ...done, msg: `Sorgu tamam (${(done.kalemler || []).length} kalem)` };
+      const loglar = (done.loglar || []).map((l) =>
+        typeof l === 'string' ? { tip: 'bilgi', mesaj: l } : l,
+      );
+      const mevcut = d.bellek || { donem: null, zaman: null, sonuclar: {} };
+      const bellek = {
+        ...mevcut,
+        sonuclar: { ...(mevcut.sonuclar || {}) },
+        zaman: new Date().toISOString(),
+      };
+      if (done.bellekKayit && mukellef?.id) {
+        const eski = bellek.sonuclar[mukellef.id] || {};
+        bellek.sonuclar[mukellef.id] = {
+          ...eski,
+          ...done.bellekKayit,
+          donemler: { ...(eski.donemler || {}), ...(done.bellekKayit.donemler || {}) },
+        };
+      }
+      return {
+        ok: true,
+        kalemler: done.kalemler || [],
+        kaydedilenFisler: done.kaydedilenFisler || [],
+        loglar,
+        bellek,
+        metin: done.metin,
+        msg: `Sorgu tamam (${(done.kalemler || []).length} kalem)`,
+      };
     },
     async cekHepsi(opts) {
       const d = tahakkukData();
-      const list = d.mukellefler || [];
+      const list =
+        Array.isArray(opts?.mukellefler) && opts.mukellefler.length
+          ? opts.mukellefler
+          : d.mukellefler || [];
+      const mevcut = d.bellek || { donem: null, zaman: null, sonuclar: {} };
+      const bellek = {
+        ...mevcut,
+        sonuclar: { ...(mevcut.sonuclar || {}) },
+        zaman: new Date().toISOString(),
+        donem: opts?.donemEtiket
+          ? { donemEtiket: opts.donemEtiket, yil: opts.yil, ay: opts.ay }
+          : mevcut.donem,
+      };
       const sonuclar = [];
+      const ozet = [];
       for (const m of list) {
         const created = await createJob('tahakkuk_cek', {
-          ofis: d.ofis || {},
+          ofis: opts?.ofis || d.ofis || {},
           mukellef: m,
           aylar: opts?.aylar,
           yil: opts?.yil,
@@ -600,12 +679,35 @@
         });
         if (!created.ok) {
           sonuclar.push({ id: m.id, ok: false, msg: created.msg });
+          ozet.push({ ad: m.ad, kalemSayisi: 0, tutar: 0, ok: false });
           continue;
         }
         const done = await waitJob(created.job.id, 300000);
-        sonuclar.push({ id: m.id, ok: done.ok, ...(done.ok ? done : { msg: done.msg }) });
+        if (done.ok) {
+          if (done.bellekKayit && m.id) {
+            const eski = bellek.sonuclar[m.id] || {};
+            bellek.sonuclar[m.id] = {
+              ...eski,
+              ...done.bellekKayit,
+              donemler: { ...(eski.donemler || {}), ...(done.bellekKayit.donemler || {}) },
+            };
+          }
+          const kalemler = done.kalemler || [];
+          const tutar = kalemler.reduce((s, k) => s + (Number(k.tutar) || 0), 0);
+          ozet.push({ ad: m.ad, kalemSayisi: kalemler.length, tutar, ok: true });
+          sonuclar.push({ id: m.id, ok: true, kalemler, kaydedilenFisler: done.kaydedilenFisler || [] });
+        } else {
+          ozet.push({ ad: m.ad, kalemSayisi: 0, tutar: 0, ok: false });
+          sonuclar.push({ id: m.id, ok: false, msg: done.msg });
+        }
       }
-      return { ok: true, sonuclar, msg: `${sonuclar.filter((s) => s.ok).length}/${list.length} tamam` };
+      return {
+        ok: true,
+        sonuclar,
+        ozet,
+        bellek,
+        msg: `${sonuclar.filter((s) => s.ok).length}/${list.length} tamam`,
+      };
     },
     async sgkCek() {
       return { ok: false, msg: 'SGK cekim bulutta henuz yok (worker gerekir).' };
@@ -644,11 +746,47 @@
     async testEbyn() {
       return { ok: false, msg: 'EBYN testi worker ile eklenecek.' };
     },
-    async waMetinGonder() {
-      return { ok: false, msg: 'WhatsApp metin gonderimi worker ister.' };
+    async waMetinGonder(opts) {
+      const tel = String(opts?.telefon || '').trim();
+      const metin = String(opts?.metin || '').trim();
+      if (!tel) return { ok: false, msg: 'Telefon yok.' };
+      if (!metin) return { ok: false, msg: 'Metin yok.' };
+      const created = await createJob('wa_gonder', { telefon: tel, metin });
+      if (!created.ok) return { ok: false, msg: created.msg };
+      return waitJob(created.job.id, 120000);
     },
-    async waPdfGonder() {
-      return { ok: false, msg: 'WhatsApp PDF gonderimi worker ister.' };
+    async waPdfGonder(opts) {
+      const tel = String(opts?.telefon || '').trim();
+      if (!tel) return { ok: false, msg: 'Telefon yok.' };
+      const files = opts?.pdfDosyalari || [];
+      if (!files.length) return { ok: false, msg: 'PDF yok.' };
+      let sent = 0;
+      const errors = [];
+      for (const f of files) {
+        const item = typeof f === 'string' ? { path: f } : f || {};
+        const pdfBase64 = item.pdfBase64 || opts?.pdfBase64;
+        if (!pdfBase64) {
+          errors.push(`${item.filename || item.path || 'pdf'}: bulutta base64 yok (once Getir)`);
+          continue;
+        }
+        const created = await createJob('wa_gonder', {
+          telefon: tel,
+          pdfBase64,
+          fileName: item.filename || 'tahakkuk.pdf',
+        });
+        if (!created.ok) {
+          errors.push(created.msg || 'job olusturulamadi');
+          continue;
+        }
+        const done = await waitJob(created.job.id, 180000);
+        if (done.ok) sent += 1;
+        else errors.push(done.msg || 'gonderim hatasi');
+      }
+      if (!sent) return { ok: false, msg: errors.join('; ') || 'PDF gonderilemedi' };
+      return {
+        ok: true,
+        msg: `${sent} PDF gonderildi` + (errors.length ? ` (${errors.length} hata)` : ''),
+      };
     },
   };
 

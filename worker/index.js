@@ -100,18 +100,25 @@ async function handleWaLogout() {
 }
 
 async function handleWaGonder(job) {
-  const { telefon, metin, imageBase64 } = job.payload || {};
+  const { telefon, metin, imageBase64, pdfBase64, fileName } = job.payload || {};
   if (!telefon) throw new Error('telefon gerekli');
   const client = getWa();
   if (client.status !== 'hazir') {
     throw new Error('WhatsApp bagli degil. Once wa_start ile QR okutun.');
   }
+  if (pdfBase64 && typeof client.sendDocument === 'function') {
+    const buf = Buffer.from(String(pdfBase64).replace(/^data:application\/pdf;base64,/, ''), 'base64');
+    await client.sendDocument(telefon, buf, fileName || 'tahakkuk.pdf', 'application/pdf');
+    if (metin) await client.sendText(telefon, metin);
+    return { ok: true, tip: 'pdf', telefon };
+  }
   if (imageBase64 && typeof client.sendImage === 'function') {
     const buf = Buffer.from(String(imageBase64).replace(/^data:image\/\w+;base64,/, ''), 'base64');
     await client.sendImage(telefon, buf);
+    if (metin) await client.sendText(telefon, metin);
     return { ok: true, tip: 'image', telefon };
   }
-  if (!metin) throw new Error('metin veya imageBase64 gerekli');
+  if (!metin) throw new Error('metin, imageBase64 veya pdfBase64 gerekli');
   await client.sendText(telefon, metin);
   return { ok: true, tip: 'text', telefon };
 }
@@ -130,9 +137,11 @@ async function handleTahakkukCek(job) {
 
   const kalemler = [];
   const loglar = [];
+  const kaydedilenFisler = [];
+  let pdfMap = null;
 
   if (ofis.ebynKullanici && ofis.ebynParola && ofis.ebynSifre) {
-    loglar.push('EBYN basliyor…');
+    loglar.push({ tip: 'bilgi', mesaj: 'EBYN basliyor…' });
     const ebyn = await ebynApi.getTahakkuklar({
       kullanici: ofis.ebynKullanici,
       parola: ofis.ebynParola,
@@ -142,17 +151,55 @@ async function handleTahakkukCek(job) {
     });
     const list = ebyn?.kalemler || ebyn?.items || [];
     for (const k of list) kalemler.push({ ...k, kaynak: 'ebyn' });
-    loglar.push(`EBYN: ${list.length} kalem`);
+    pdfMap = ebyn?.pdfMap || null;
+    loglar.push({ tip: 'ok', mesaj: `EBYN: ${list.length} kalem` });
   } else {
-    loglar.push('EBYN ofis bilgisi yok — atlandi');
+    loglar.push({ tip: 'uyari', mesaj: 'EBYN ofis bilgisi yok — atlandi' });
   }
 
   if (p.ivdCek && mukellef.ivdKullanici && mukellef.ivdSifre) {
-    loglar.push('IVD basliyor…');
+    loglar.push({ tip: 'bilgi', mesaj: 'IVD basliyor…' });
     const ivd = await ivdApi.getBorcDurumu(mukellef.ivdKullanici, mukellef.ivdSifre);
     const list = ivd?.kalemler || ivd?.borclar || [];
     for (const k of list) kalemler.push({ ...k, kaynak: 'ivd' });
-    loglar.push(`IVD: ${list.length} kalem`);
+    loglar.push({ tip: 'ok', mesaj: `IVD: ${list.length} kalem` });
+  }
+
+  if (pdfMap) {
+    for (const [oid, pack] of Object.entries(pdfMap)) {
+      try {
+        const raw = pack.pdf;
+        const buf = Buffer.isBuffer(raw)
+          ? raw
+          : Buffer.from(raw?.data || raw || []);
+        if (!buf.length) continue;
+        const filename = pack.filename || `tahakkuk-${oid}.pdf`;
+        const storagePath = `${job.user_id || 'anon'}/tahakkuk/${job.id}/${filename}`;
+        let uploaded = false;
+        try {
+          const { error: upErr } = await supabase.storage
+            .from('musavirim-dosyalar')
+            .upload(storagePath, buf, { contentType: 'application/pdf', upsert: true });
+          uploaded = !upErr;
+        } catch {
+          uploaded = false;
+        }
+        kaydedilenFisler.push({
+          tahakkukOid: oid,
+          filename,
+          donem: pack.donem || '',
+          tur: pack.tur || '',
+          path: uploaded ? storagePath : null,
+          // Worker / UI WhatsApp icin; buyuk dosyalarda storage tercih
+          pdfBase64: uploaded ? null : buf.toString('base64'),
+        });
+      } catch (err) {
+        loglar.push({ tip: 'hata', mesaj: `PDF kayit: ${err.message || err}` });
+      }
+    }
+    if (kaydedilenFisler.length) {
+      loglar.push({ tip: 'ok', mesaj: `Tahakkuk PDF: ${kaydedilenFisler.length} dosya` });
+    }
   }
 
   const metin = olusturMetin({
@@ -163,13 +210,34 @@ async function handleTahakkukCek(job) {
     kalemler,
   });
 
+  const ay0 = aylar[0] || { yil, ay: new Date().getMonth() + 1 };
+  const donemKey = `${ay0.yil}-${String(ay0.ay).padStart(2, '0')}`;
+
   return {
     ok: true,
     kalemler,
     metin,
     loglar,
+    kaydedilenFisler,
     mukellefId: mukellef.id,
     vkn,
+    bellekKayit: {
+      id: mukellef.id,
+      ad: mukellef.ad,
+      vkn,
+      kalemler,
+      pdfDosyalari: kaydedilenFisler,
+      donemler: {
+        [donemKey]: {
+          kalemler,
+          pdfDosyalari: kaydedilenFisler,
+          ok: true,
+          zaman: new Date().toISOString(),
+        },
+      },
+      sonDonem: donemKey,
+      zaman: new Date().toISOString(),
+    },
   };
 }
 

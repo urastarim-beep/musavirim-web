@@ -1802,15 +1802,37 @@ $('cekBtn').addEventListener('click', async () => {
       ivdCek: $('ivdCek').checked,
       sgkCek: !!$('sgkCekSorguda')?.checked,
     });
-    if (r.bellek) state.bellek = r.bellek;
+    if (r.bellek) {
+      state.bellek = r.bellek;
+      await api().bellekKaydet(state.bellek).catch(() => {});
+    } else if ((r.kalemler || []).length) {
+      kalemleriBellegeYaz(r.kalemler);
+    }
     state.sonKalemler = r.kalemler || [];
     state.sonPdfDosyalari = r.kaydedilenFisler || [];
+    // Donem kaydina PDF'leri de yaz
+    if (state.aktifId && (r.kaydedilenFisler || []).length) {
+      const { yil, ay } = seciliDonem();
+      const key = donemAnahtarUi(yil, ay);
+      const eski = (state.bellek.sonuclar || {})[state.aktifId] || {};
+      const donemler = { ...(eski.donemler || {}) };
+      donemler[key] = {
+        ...(donemler[key] || {}),
+        kalemler: r.kalemler || donemler[key]?.kalemler || [],
+        pdfDosyalari: r.kaydedilenFisler,
+        ok: true,
+        zaman: new Date().toISOString(),
+      };
+      state.bellek.sonuclar = state.bellek.sonuclar || {};
+      state.bellek.sonuclar[state.aktifId] = { ...eski, donemler, kalemler: r.kalemler || [], pdfDosyalari: r.kaydedilenFisler, sonDonem: key };
+      api().bellekKaydet(state.bellek).catch(() => {});
+    }
     renderKalemler(state.sonKalemler);
     renderBellekOzet();
     await metniYenile();
-    const logs = (r.loglar || []).map((l) => `[${l.tip}] ${l.mesaj}`).join('\n');
+    const logs = (r.loglar || []).map((l) => (typeof l === 'string' ? l : `[${l.tip || ''}] ${l.mesaj || ''}`)).join('\n');
     $('log').textContent = logs;
-    const hasHata = (r.loglar || []).some((l) => l.tip === 'hata');
+    const hasHata = (r.loglar || []).some((l) => typeof l === 'object' && l.tip === 'hata');
     showMsg(
       `${m.ad}: ${(r.kalemler || []).length} kalem belleğe yazildi.` + (hasHata ? ' (hata var)' : ''),
       hasHata ? 'hata' : 'ok',
@@ -1874,7 +1896,8 @@ async function getirSecilenleri(hepsi, sadeceIds) {
       showMsg(r.msg || 'Getirme basarisiz', 'hata');
       return;
     }
-    state.bellek = r.bellek || { donem: null, zaman: null, sonuclar: {} };
+    state.bellek = r.bellek || state.bellek || { donem: null, zaman: null, sonuclar: {} };
+    if (r.bellek) await api().bellekKaydet(state.bellek).catch(() => {});
     // Secimleri koru
     const secili = new Set(ids);
     renderBellekOzet();
