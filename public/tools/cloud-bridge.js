@@ -309,6 +309,159 @@
                 }
                 return { success: false, message: 'Dosya bulutta yok — tekrar Excel\'e Aktar.' };
               }
+              if (channel === 'convert-to-mustahsil') {
+                const src =
+                  window.__HKS_LAST_EXCEL__ ||
+                  (payload?.excelBase64
+                    ? { excelBase64: payload.excelBase64, fileName: payload.hksFilePath || 'hks.xlsx' }
+                    : null);
+                if (!src?.excelBase64) {
+                  return {
+                    success: false,
+                    message: 'HKS Excel yok. Once "Dosya Seç" ile HKS_Kunye_*.xlsx secin veya Excel\'e Aktar.',
+                  };
+                }
+                try {
+                  if (typeof window.XLSX === 'undefined') {
+                    await new Promise((resolve, reject) => {
+                      const s = document.createElement('script');
+                      s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+                      s.onload = resolve;
+                      s.onerror = () => reject(new Error('SheetJS yuklenemedi'));
+                      document.head.appendChild(s);
+                    });
+                  }
+                  const XLSX = window.XLSX;
+                  const raw = String(src.excelBase64).replace(/^data:[^;]+;base64,/, '');
+                  const wb = XLSX.read(raw, { type: 'base64', cellDates: false, raw: false });
+                  const sheet = wb.Sheets[wb.SheetNames[0]];
+                  const hksData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+                  const rows = [];
+                  for (let i = 1; i < hksData.length; i++) {
+                    const r = hksData[i];
+                    if (!r || !r[0]) continue;
+                    rows.push({
+                      kunyeNo: r[0],
+                      tarih: r[1],
+                      malinAdi: r[2],
+                      miktar: parseFloat(String(r[3] || '').replace(',', '.')) || r[3],
+                      birim: r[4],
+                      birimFiyat: parseFloat(String(r[5] || '').replace(',', '.')) || r[5],
+                      il: r[6],
+                      ilce: r[7],
+                      uretici: r[8],
+                      tckn: r[9],
+                    });
+                  }
+                  if (!rows.length) return { success: false, message: 'HKS dosyasinda veri bulunamadi' };
+
+                  let makbuzCounter = 0;
+                  const makbuzMap = {};
+                  const outAoA = [
+                    [
+                      'Makbuz_No',
+                      'TARIH',
+                      'KISI_ADI',
+                      'KISI_SOYADI',
+                      'ALICI_UNVAN',
+                      'TCKN',
+                      'IL',
+                      'ILCE',
+                      'ADRES',
+                      'URUN',
+                      'MIKTAR',
+                      'BIRIM',
+                      'BIRIM_FIYAT',
+                      'GV_STOPAJI_ORANI',
+                      'BORSA_TES_UC_ORANI',
+                      'BORSA_TES_UC_TUTARI',
+                      'MERA_FONU_TUTARI',
+                      'SGK_PRIM_KESİNTİ_TUTARI',
+                      'TUTAR',
+                      'SATICI_MAL_KODU',
+                      'KUNYE_NO',
+                    ],
+                  ];
+                  for (const row of rows) {
+                    let tarihStr = '';
+                    if (typeof row.tarih === 'string' && row.tarih.includes('.')) {
+                      const p = row.tarih.split('.');
+                      tarihStr = `${p[2]}-${p[1]}-${p[0]}`;
+                    } else {
+                      tarihStr = String(row.tarih || '');
+                    }
+                    const key = `${row.tckn}_${tarihStr}`;
+                    if (!makbuzMap[key]) {
+                      makbuzCounter += 1;
+                      makbuzMap[key] = `Makbuz_${makbuzCounter}`;
+                    }
+                    const ureticiStr = String(row.uretici || '').trim();
+                    const nameParts = ureticiStr.split(/\s+/);
+                    let birimStr = String(row.birim || '').trim();
+                    if (birimStr.toLowerCase() === 'kg') birimStr = 'KGM';
+                    const miktar =
+                      typeof row.miktar === 'number'
+                        ? row.miktar
+                        : parseFloat(String(row.miktar || '').replace(',', '.')) || '';
+                    const birimFiyat =
+                      typeof row.birimFiyat === 'number'
+                        ? row.birimFiyat
+                        : parseFloat(String(row.birimFiyat || '').replace(',', '.')) || '';
+                    outAoA.push([
+                      makbuzMap[key],
+                      row.tarih || '',
+                      nameParts[0] || '',
+                      nameParts.slice(1).join(' ') || '',
+                      ureticiStr,
+                      String(row.tckn || ''),
+                      row.il || '',
+                      row.ilce || '',
+                      ' ',
+                      row.malinAdi || '',
+                      miktar,
+                      birimStr,
+                      birimFiyat,
+                      2,
+                      '',
+                      '',
+                      '',
+                      '',
+                      typeof miktar === 'number' && typeof birimFiyat === 'number' ? miktar * birimFiyat : '',
+                      '',
+                      String(row.kunyeNo || ''),
+                    ]);
+                  }
+                  const outWb = XLSX.utils.book_new();
+                  const outWs = XLSX.utils.aoa_to_sheet(outAoA);
+                  XLSX.utils.book_append_sheet(outWb, outWs, 'Sheet');
+                  const outB64 = XLSX.write(outWb, { type: 'base64', bookType: 'xlsx' });
+                  const baseName = String(src.fileName || 'HKS_Kunye').replace(/\.xlsx$/i, '');
+                  const outName = baseName.replace('HKS_Kunye_', 'Mustahsil_') + '_Mustahsil.xlsx';
+                  const bin = atob(outB64);
+                  const bytes = new Uint8Array(bin.length);
+                  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                  const blob = new Blob([bytes], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = outName;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 2000);
+                  window.__HKS_LAST_MUSTAHSIL__ = { fileName: outName, excelBase64: outB64, count: rows.length };
+                  return {
+                    success: true,
+                    filePath: `Bulut/${outName}`,
+                    count: rows.length,
+                    message: 'Mustahsil Excel indirildi (bulut).',
+                  };
+                } catch (err) {
+                  return { success: false, message: err.message || String(err) };
+                }
+              }
               return notify('Bu işlem bulut worker ile çalışacak: ' + channel);
             },
             on: () => {},

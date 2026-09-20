@@ -357,8 +357,19 @@ async function handleHksExport(job) {
     try {
       await page.selectOption('#MainContent_ddlKunyeTuru', { label: kunyeTuru });
     } catch {
+      // Dropdown etiketleri UI checkbox'larından farklı olabilir — kısmi eşle
       try {
-        await page.selectOption('#MainContent_ddlKunyeTuru', { label: 'Malın Geliş Künyesi' });
+        const opts = await page.$$eval('#MainContent_ddlKunyeTuru option', (nodes) =>
+          nodes.map((o) => ({ value: o.value, label: (o.textContent || '').trim() })),
+        );
+        const want = String(kunyeTuru).toLocaleLowerCase('tr-TR');
+        const hit =
+          opts.find((o) => o.label.toLocaleLowerCase('tr-TR') === want) ||
+          opts.find((o) => o.label.toLocaleLowerCase('tr-TR').includes(want.split(' ')[0])) ||
+          opts.find((o) => /referans/i.test(o.label) && /referans/i.test(kunyeTuru)) ||
+          opts.find((o) => /nihai/i.test(o.label) && /nihai/i.test(kunyeTuru)) ||
+          opts.find((o) => /fire/i.test(o.label) && /fire/i.test(kunyeTuru));
+        if (hit) await page.selectOption('#MainContent_ddlKunyeTuru', hit.value);
       } catch {
         /* ignore */
       }
@@ -394,10 +405,12 @@ async function handleHksExport(job) {
     if (search) {
       await search.click();
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1500);
+      await page.waitForTimeout(2000);
     }
 
     const allRows = [];
+    let seenTotal = 0;
+    let lastHeaders = [];
     let pageNum = 1;
     let hasNext = true;
     while (hasNext && pageNum <= 40) {
@@ -406,42 +419,82 @@ async function handleHksExport(job) {
           String(s || '')
             .toLocaleUpperCase('tr-TR')
             .replace(/İ/g, 'I')
+            .replace(/I\u0307/g, 'I')
             .replace(/Ş/g, 'S')
             .replace(/Ğ/g, 'G')
             .replace(/Ü/g, 'U')
             .replace(/Ö/g, 'O')
             .replace(/Ç/g, 'C')
+            .replace(/[^A-Z0-9 ]+/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
+        const stop = new Set([
+          'VE',
+          'ILE',
+          'SANAYI',
+          'TICARET',
+          'LIMITED',
+          'SIRKETI',
+          'ANONIM',
+          'AS',
+          'LTD',
+          'STI',
+          'URUNLERI',
+          'URUNLER',
+          'NAKLİYE',
+          'NAKLIYE',
+          'ORGANIK',
+          'TARIM',
+        ]);
         const filterNorm = normalize(filter);
-        const out = [];
-        const rows = document.querySelectorAll('#MainContent_BildirimListele1_gvBildirimList tr');
+        const tokens = filterNorm
+          .split(' ')
+          .filter((t) => t.length >= 4 && !stop.has(t))
+          .slice(0, 8);
+
+        const table =
+          document.querySelector('#MainContent_BildirimListele1_gvBildirimList') ||
+          document.querySelector('[id*="gvBildirimList"]') ||
+          document.querySelector('table');
+        if (!table) return { rows: [], total: 0, headers: [], sample: [] };
+
+        const trs = table.querySelectorAll('tr');
         let headers = [];
         let malinSahibiIndex = -1;
         let bildirimciIndex = -1;
-        rows.forEach((row) => {
+        const matched = [];
+        const allData = [];
+        trs.forEach((row) => {
           const ths = row.querySelectorAll('th');
           if (ths.length) {
             headers = [...ths].map((h) => (h.textContent || '').trim());
             headers.forEach((text, idx) => {
-              if (text.includes('Malın Sahibi')) malinSahibiIndex = idx;
-              if (text.includes('Bildirimci')) bildirimciIndex = idx;
+              if (/mal.?n sahibi|malin sahibi/i.test(text)) malinSahibiIndex = idx;
+              if (/bildirimci/i.test(text)) bildirimciIndex = idx;
             });
             return;
           }
-          const cells = [...row.querySelectorAll('td')].map((c) => (c.textContent || '').trim());
-          if (!cells.length) return;
+          const cells = [...row.querySelectorAll('td')].map((c) => (c.textContent || '').replace(/\s+/g, ' ').trim());
+          if (cells.length < 2) return;
+          const joined = normalize(cells.join(' '));
           const sahip = malinSahibiIndex >= 0 ? cells[malinSahibiIndex] : '';
           const bildirimci = bildirimciIndex >= 0 ? cells[bildirimciIndex] : '';
           const sahipN = normalize(sahip);
           const bildirimciN = normalize(bildirimci);
-          const match =
+
+          const fullHit =
             !filterNorm ||
-            sahipN.includes(filterNorm) ||
+            joined.includes(filterNorm) ||
             filterNorm.includes(sahipN) ||
-            bildirimciN.includes(filterNorm) ||
-            filterNorm.includes(bildirimciN);
-          if (!match) return;
+            filterNorm.includes(bildirimciN) ||
+            sahipN.includes(filterNorm) ||
+            bildirimciN.includes(filterNorm);
+
+          const tokenHits = tokens.filter(
+            (t) => joined.includes(t) || sahipN.includes(t) || bildirimciN.includes(t),
+          ).length;
+          const tokenHit = tokens.length ? tokenHits >= Math.min(2, tokens.length) : false;
+
           const obj = { malinSahibi: sahip, bildirimci };
           headers.forEach((h, i) => {
             if (h) obj[h] = cells[i] || '';
@@ -451,15 +504,81 @@ async function handleHksExport(job) {
               obj['col' + i] = v;
             });
           }
-          out.push(obj);
+          allData.push(obj);
+          if (fullHit || tokenHit) matched.push(obj);
         });
-        return out;
+
+        return {
+          rows: matched.length ? matched : [],
+          allRows: allData,
+          total: allData.length,
+          headers,
+          sample: allData.slice(0, 3).map((r) => r.malinSahibi || r.bildirimci || Object.values(r)[0] || ''),
+          tokenCount: tokens.length,
+        };
       }, filterName);
 
-      allRows.push(...batch);
+      seenTotal += batch.total || 0;
+      if (batch.headers?.length) lastHeaders = batch.headers;
+      const useRows = batch.rows?.length ? batch.rows : [];
+      // İlk sayfada filtre 0 ama tablo doluysa token zayıf — tüm satırları alma (yanlış firma riski)
+      // Bunun yerine ikinci geçiş: sadece en uzun token ile eşle
+      if (!useRows.length && batch.allRows?.length && pageNum === 1) {
+        const loose = await page.evaluate((filter) => {
+          const normalize = (s) =>
+            String(s || '')
+              .toLocaleUpperCase('tr-TR')
+              .replace(/İ/g, 'I')
+              .replace(/Ş/g, 'S')
+              .replace(/Ğ/g, 'G')
+              .replace(/Ü/g, 'U')
+              .replace(/Ö/g, 'O')
+              .replace(/Ç/g, 'C')
+              .replace(/[^A-Z0-9 ]+/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+          const parts = normalize(filter)
+            .split(' ')
+            .filter((t) => t.length >= 5);
+          parts.sort((a, b) => b.length - a.length);
+          const key = parts[0] || '';
+          if (!key) return [];
+          const table =
+            document.querySelector('#MainContent_BildirimListele1_gvBildirimList') ||
+            document.querySelector('[id*="gvBildirimList"]');
+          if (!table) return [];
+          const out = [];
+          let headers = [];
+          table.querySelectorAll('tr').forEach((row) => {
+            const ths = row.querySelectorAll('th');
+            if (ths.length) {
+              headers = [...ths].map((h) => (h.textContent || '').trim());
+              return;
+            }
+            const cells = [...row.querySelectorAll('td')].map((c) => (c.textContent || '').replace(/\s+/g, ' ').trim());
+            if (!cells.length) return;
+            if (!normalize(cells.join(' ')).includes(key)) return;
+            const obj = {};
+            headers.forEach((h, i) => {
+              if (h) obj[h] = cells[i] || '';
+            });
+            obj.malinSahibi = obj['Malın Sahibi'] || cells[0] || '';
+            obj.bildirimci = obj.Bildirimci || '';
+            out.push(obj);
+          });
+          return out;
+        }, filterName);
+        allRows.push(...loose);
+      } else {
+        allRows.push(...useRows);
+      }
 
       const clicked = await page.evaluate((currentPage) => {
-        const links = document.querySelectorAll('#MainContent_BildirimListele1_gvBildirimList a');
+        const root =
+          document.querySelector('#MainContent_BildirimListele1_gvBildirimList') ||
+          document.querySelector('[id*="gvBildirimList"]') ||
+          document;
+        const links = root.querySelectorAll('a');
         for (const link of links) {
           if ((link.textContent || '').trim() === String(currentPage + 1)) {
             link.click();
@@ -479,7 +598,9 @@ async function handleHksExport(job) {
 
     if (!allRows.length) {
       throw new Error(
-        `Filtreye uyan veri yok: "${filterName}". Filtre / tarih / künye türünü kontrol edin.`,
+        `Filtreye uyan veri yok: "${filterName}". Tabloda ~${seenTotal} satir goruldu` +
+          (lastHeaders.length ? ` (sutunlar: ${lastHeaders.slice(0, 6).join(', ')})` : ' (tablo bos veya oturum/tarih)') +
+          '. Filtreyi kisaltmayi veya tarih araligini genisletmeyi deneyin.',
       );
     }
 

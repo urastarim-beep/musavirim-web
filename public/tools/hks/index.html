@@ -1293,6 +1293,7 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
 
             const { ipcRenderer } = require('electron');
             let lastHksFile = null;
+            let lastExportErr = '';
 
             // ── ADIM 1: HKS'den Excel'e aktar ──
             for (let i = 0; i < selectedTypes.length; i++) {
@@ -1317,12 +1318,13 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
                     addFileToList(filePath, fileName, count);
                     lastHksFile = filePath;
                 } else {
-                    showStatus(status3, `[1/3] ${kunyeTuru}: ${result.message || 'Indirme basarisiz'}`, 'error');
+                    lastExportErr = result.message || 'Indirme basarisiz';
+                    showStatus(status3, `[1/3] ${kunyeTuru}: ${lastExportErr}`, 'error');
                 }
             }
 
             if (!lastHksFile) {
-                showStatus(status3, 'HKS verisi indirilemedi, işlem durdu. Captcha/oturum veya sayfa kopmasi olabilir — tekrar giris yapip deneyin.', 'error');
+                showStatus(status3, lastExportErr || 'HKS verisi indirilemedi, işlem durdu. Captcha/oturum veya sayfa kopmasi olabilir — tekrar giris yapip deneyin.', 'error');
                 btnExport.disabled = false;
                 btnExport.innerHTML = "Excel'e Aktar";
                 return;
@@ -1429,11 +1431,15 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
             const { ipcRenderer } = require('electron');
             const result = await ipcRenderer.invoke('select-hks-file');
             if (result.success) {
-                txtHksFile.value = result.path;
-                // Aynı klasörü otomatik doldur
-                const parts = result.path.replace(/\\/g, '/').split('/');
-                parts.pop();
-                txtMustahsilFolder.value = parts.join('\\').replace(/\//g, '\\');
+                txtHksFile.value = result.path || result.fileName || '';
+                if (window.__MUSAVIRIM_IS_CLOUD__) {
+                    txtMustahsilFolder.value = 'Bulut (Excel otomatik iner)';
+                } else {
+                    const parts = String(result.path || '').replace(/\\/g, '/').split('/');
+                    parts.pop();
+                    txtMustahsilFolder.value = parts.join('\\').replace(/\//g, '\\');
+                }
+                showStatus(status4, 'HKS dosyası seçildi.', 'info');
             }
         });
 
