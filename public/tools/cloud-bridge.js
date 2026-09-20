@@ -85,6 +85,8 @@
     return { ok: false, msg: 'Is hala calisiyor / worker ayakta mi?' };
   }
 
+  window.__MUSAVIRIM_IS_CLOUD__ = true;
+
   if (typeof window.require !== 'function') {
     let hksCookie = '';
     let hksForm = null;
@@ -198,25 +200,114 @@
                   filterName: payload?.filterName,
                 });
                 if (!created.ok) return { success: false, message: created.msg || 'Job olusturulamadi' };
-                const done = await waitJob(created.job.id, 300000);
+                const done = await waitJob(created.job.id, 600000);
                 if (!done.ok) return { success: false, message: done.msg || 'Export hatasi' };
-                if (!done.excelBase64 && !done.storagePath && !done.downloadUrl) {
+
+                const fileName =
+                  done.filename ||
+                  done.fileName ||
+                  `HKS_Kunye_${String(payload?.kunyeTuru || 'export').replace(/\s+/g, '_')}.xlsx`;
+                let filePath = fileName;
+
+                if (done.excelBase64) {
+                  try {
+                    const bin = atob(String(done.excelBase64).replace(/^data:[^;]+;base64,/, ''));
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    const blob = new Blob([bytes], {
+                      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    window.__HKS_LAST_EXCEL__ = {
+                      fileName,
+                      excelBase64: done.excelBase64,
+                      count: done.count || done.rowCount || 0,
+                    };
+                    filePath = `Bulut/${fileName}`;
+                  } catch (err) {
+                    return { success: false, message: 'Excel indirilemedi: ' + (err.message || err) };
+                  }
+                } else if (done.downloadUrl) {
+                  window.open(done.downloadUrl, '_blank', 'noopener');
+                  filePath = done.downloadUrl;
+                } else if (!done.storagePath) {
                   return {
                     success: false,
                     message:
                       done.message ||
-                      'HKS sayfasi acildi ama Excel henuz uretilmiyor. Worker scrape tamamlaninca eklenecek.',
+                      'HKS Excel uretilemedi. Worker loglarina bakin veya tekrar deneyin.',
                     rowCount: done.rowCount,
                   };
                 }
+
                 return {
                   success: true,
-                  message: done.message || 'HKS Excel hazir.',
-                  ...done,
+                  message: done.message || 'HKS Excel buluta kaydedildi / indirildi.',
+                  filePath,
+                  count: done.count || done.rowCount || 0,
+                  filename: fileName,
+                  storagePath: done.storagePath || null,
                 };
               }
-              if (channel === 'select-folder' || channel === 'select-hks-file' || channel === 'select-save') {
-                return { canceled: true, msg: 'Bulutta klasör seçimi yakında (dosya yükleme).' };
+              if (channel === 'select-folder') {
+                return {
+                  success: true,
+                  path: 'Bulut (Excel otomatik iner)',
+                  cloud: true,
+                };
+              }
+              if (channel === 'select-hks-file' || channel === 'select-save') {
+                return await new Promise((resolve) => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept =
+                    channel === 'select-hks-file'
+                      ? '.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                      : '*/*';
+                  input.onchange = async () => {
+                    const file = input.files && input.files[0];
+                    if (!file) {
+                      resolve({ canceled: true, success: false });
+                      return;
+                    }
+                    const buf = await file.arrayBuffer();
+                    const bytes = new Uint8Array(buf);
+                    let binary = '';
+                    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                    const b64 = btoa(binary);
+                    window.__HKS_LAST_EXCEL__ = { fileName: file.name, excelBase64: b64, count: 0 };
+                    resolve({ success: true, path: file.name, fileName: file.name, cloud: true });
+                  };
+                  input.click();
+                });
+              }
+              if (channel === 'open-file') {
+                const last = window.__HKS_LAST_EXCEL__;
+                if (last?.excelBase64) {
+                  const bin = atob(String(last.excelBase64).replace(/^data:[^;]+;base64,/, ''));
+                  const bytes = new Uint8Array(bin.length);
+                  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                  const blob = new Blob([bytes], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = last.fileName || 'hks.xlsx';
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 2000);
+                  return { success: true };
+                }
+                return { success: false, message: 'Dosya bulutta yok — tekrar Excel\'e Aktar.' };
               }
               return notify('Bu işlem bulut worker ile çalışacak: ' + channel);
             },

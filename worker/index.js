@@ -312,11 +312,14 @@ async function handleHizliXml(job) {
 }
 
 async function handleHksExport(job) {
-  // Playwright ile cookie oturumu — export masaüstü register.js akışına benzer
+  const ExcelJS = require('exceljs');
   const { chromium } = await import('playwright');
   const p = job.payload || {};
   const cookieHeader = String(p.cookie || '');
   if (!cookieHeader) throw new Error('HKS cookie gerekli — once webden giris yapin');
+
+  const filterName = String(p.filterName || '').trim();
+  if (!filterName) throw new Error('Filtre adi bos');
 
   const browser = await chromium.launch({
     headless: true,
@@ -328,15 +331,18 @@ async function handleHksExport(job) {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       ignoreHTTPSErrors: true,
     });
-    const cookies = cookieHeader.split(';').map((part) => {
-      const [name, ...rest] = part.trim().split('=');
-      return {
-        name: name.trim(),
-        value: rest.join('=').trim(),
-        domain: 'hks.hal.gov.tr',
-        path: '/',
-      };
-    }).filter((c) => c.name && c.value);
+    const cookies = cookieHeader
+      .split(';')
+      .map((part) => {
+        const [name, ...rest] = part.trim().split('=');
+        return {
+          name: name.trim(),
+          value: rest.join('=').trim(),
+          domain: 'hks.hal.gov.tr',
+          path: '/',
+        };
+      })
+      .filter((c) => c.name && c.value);
     await context.addCookies(cookies);
 
     const page = await context.newPage();
@@ -347,29 +353,43 @@ async function handleHksExport(job) {
       throw new Error('HKS oturumu gecersiz — webden tekrar giris yapin');
     }
 
-    // Künye / tarih / filtre — mümkün olduğunca doldur
-    const kunyeTuru = p.kunyeTuru || 'Malın Geliş Künyesi';
+    const kunyeTuru = p.kunyeTuru || 'Referans';
     try {
       await page.selectOption('#MainContent_ddlKunyeTuru', { label: kunyeTuru });
     } catch {
-      /* ignore */
+      try {
+        await page.selectOption('#MainContent_ddlKunyeTuru', { label: 'Malın Geliş Künyesi' });
+      } catch {
+        /* ignore */
+      }
     }
-    if (p.baslangicTarihi) {
+    await page.waitForTimeout(400);
+
+    const baslangicFormatted = String(p.baslangicTarihi || '').replace(/\//g, '.');
+    const bitisFormatted = String(p.bitisTarihi || '').replace(/\//g, '.');
+    if (baslangicFormatted) {
       const el = await page.$('#x\\:1558800468\\.0\\:mkr\\:3');
       if (el) {
         await el.click();
-        await el.evaluate((n) => { n.value = ''; });
-        await el.type(String(p.baslangicTarihi).replace(/\//g, '.'), { delay: 0 });
+        await el.evaluate((n) => {
+          n.value = '';
+        });
+        await el.type(baslangicFormatted, { delay: 0 });
+        await page.keyboard.press('Tab');
       }
     }
-    if (p.bitisTarihi) {
+    if (bitisFormatted) {
       const el = await page.$('#x\\:815955057\\.0\\:mkr\\:3');
       if (el) {
         await el.click();
-        await el.evaluate((n) => { n.value = ''; });
-        await el.type(String(p.bitisTarihi).replace(/\//g, '.'), { delay: 0 });
+        await el.evaluate((n) => {
+          n.value = '';
+        });
+        await el.type(bitisFormatted, { delay: 0 });
+        await page.keyboard.press('Tab');
       }
     }
+
     const search = await page.$('#MainContent_btnSearch');
     if (search) {
       await search.click();
@@ -377,15 +397,150 @@ async function handleHksExport(job) {
       await page.waitForTimeout(1500);
     }
 
-    const filterName = String(p.filterName || '').trim();
-    const rowCount = await page.$$eval('table tr', (rows) => rows.length);
+    const allRows = [];
+    let pageNum = 1;
+    let hasNext = true;
+    while (hasNext && pageNum <= 40) {
+      const batch = await page.evaluate((filter) => {
+        const normalize = (s) =>
+          String(s || '')
+            .toLocaleUpperCase('tr-TR')
+            .replace(/İ/g, 'I')
+            .replace(/Ş/g, 'S')
+            .replace(/Ğ/g, 'G')
+            .replace(/Ü/g, 'U')
+            .replace(/Ö/g, 'O')
+            .replace(/Ç/g, 'C')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const filterNorm = normalize(filter);
+        const out = [];
+        const rows = document.querySelectorAll('#MainContent_BildirimListele1_gvBildirimList tr');
+        let headers = [];
+        let malinSahibiIndex = -1;
+        let bildirimciIndex = -1;
+        rows.forEach((row) => {
+          const ths = row.querySelectorAll('th');
+          if (ths.length) {
+            headers = [...ths].map((h) => (h.textContent || '').trim());
+            headers.forEach((text, idx) => {
+              if (text.includes('Malın Sahibi')) malinSahibiIndex = idx;
+              if (text.includes('Bildirimci')) bildirimciIndex = idx;
+            });
+            return;
+          }
+          const cells = [...row.querySelectorAll('td')].map((c) => (c.textContent || '').trim());
+          if (!cells.length) return;
+          const sahip = malinSahibiIndex >= 0 ? cells[malinSahibiIndex] : '';
+          const bildirimci = bildirimciIndex >= 0 ? cells[bildirimciIndex] : '';
+          const sahipN = normalize(sahip);
+          const bildirimciN = normalize(bildirimci);
+          const match =
+            !filterNorm ||
+            sahipN.includes(filterNorm) ||
+            filterNorm.includes(sahipN) ||
+            bildirimciN.includes(filterNorm) ||
+            filterNorm.includes(bildirimciN);
+          if (!match) return;
+          const obj = { malinSahibi: sahip, bildirimci };
+          headers.forEach((h, i) => {
+            if (h) obj[h] = cells[i] || '';
+          });
+          if (!headers.length) {
+            cells.forEach((v, i) => {
+              obj['col' + i] = v;
+            });
+          }
+          out.push(obj);
+        });
+        return out;
+      }, filterName);
+
+      allRows.push(...batch);
+
+      const clicked = await page.evaluate((currentPage) => {
+        const links = document.querySelectorAll('#MainContent_BildirimListele1_gvBildirimList a');
+        for (const link of links) {
+          if ((link.textContent || '').trim() === String(currentPage + 1)) {
+            link.click();
+            return true;
+          }
+        }
+        return false;
+      }, pageNum);
+      if (clicked) {
+        await page.waitForLoadState('domcontentloaded').catch(() => {});
+        await page.waitForTimeout(1200);
+        pageNum += 1;
+      } else {
+        hasNext = false;
+      }
+    }
+
+    if (!allRows.length) {
+      throw new Error(
+        `Filtreye uyan veri yok: "${filterName}". Filtre / tarih / künye türünü kontrol edin.`,
+      );
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Künye Belgeleri');
+    const preferred = [
+      'Künye No',
+      'Bildirim Tarihi',
+      'Malın Adı',
+      'Miktar',
+      'Birim',
+      'Malın Birim Fiyatı',
+      'Birim Fiyat',
+      'İl',
+      'İlçe',
+      'Üreticinin Adı-Soyadı',
+      'Üretici',
+      'TC/VKN',
+      'Malın Cinsi',
+      'Malın Sahibi',
+      'Bildirimci',
+    ];
+    const keySet = new Set();
+    allRows.forEach((r) => Object.keys(r).forEach((k) => keySet.add(k)));
+    const keys = [
+      ...preferred.filter((k) => keySet.has(k)),
+      ...[...keySet].filter((k) => !preferred.includes(k)),
+    ];
+    worksheet.columns = keys.map((k) => ({ header: k, key: k, width: Math.min(40, Math.max(12, k.length + 2)) }));
+    worksheet.getRow(1).font = { bold: true };
+    for (const row of allRows) worksheet.addRow(row);
+
+    const buf = Buffer.from(await workbook.xlsx.writeBuffer());
+    const safeKunye = String(kunyeTuru).replace(/[^\wğüşıöçĞÜŞİÖÇ\- ]+/gi, '').replace(/\s+/g, '_');
+    const filename = `HKS_Kunye_${safeKunye}_${baslangicFormatted.replace(/\./g, '-') || 'bas'}_${bitisFormatted.replace(/\./g, '-') || 'bit'}.xlsx`;
+    const storagePath = `${job.user_id || 'anon'}/hks/${job.id}-${filename}`;
+    let uploaded = false;
+    try {
+      const { error: upErr } = await supabase.storage
+        .from('musavirim-dosyalar')
+        .upload(storagePath, buf, {
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          upsert: true,
+        });
+      uploaded = !upErr;
+    } catch {
+      uploaded = false;
+    }
+
     return {
       ok: true,
-      message: 'HKS bildirim sayfasi acildi; detayli Excel export sonraki iterasyonda genisletilecek.',
+      success: true,
+      count: allRows.length,
+      rowCount: allRows.length,
+      filename,
+      fileName: filename,
+      excelBase64: buf.toString('base64'),
+      storagePath: uploaded ? storagePath : null,
+      message: `${allRows.length} künye Excel olarak hazırlandı (bulut).`,
       filterName,
-      rowCount,
-      url: page.url(),
-      not: 'Tam Excel scrapesi masaustu export-excel ile ayni seviyeye getirilecek',
+      kunyeTuru,
     };
   } finally {
     await browser.close();

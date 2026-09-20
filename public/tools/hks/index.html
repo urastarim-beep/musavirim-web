@@ -674,8 +674,8 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Kayıt Klasörü</label>
+            <div class="form-group" id="folderGroup">
+                <label>Kayıt Klasörü <span id="folderCloudHint" style="display:none;color:#4caf7c;font-weight:500">(Bulut)</span></label>
                 <div class="folder-select">
                     <input type="text" id="txtFolder" placeholder="Klasör seçin..." readonly>
                     <button class="btn btn-secondary" id="btnSelectFolder">Klasör Seç</button>
@@ -722,7 +722,7 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
             </div>
 
             <div class="form-group">
-                <label>Kayıt Klasörü</label>
+                <label>Kayıt Klasörü <span class="folderCloudHint2" style="display:none;color:#4caf7c">(Bulut)</span></label>
                 <div class="folder-select">
                     <input type="text" id="txtMustahsilFolder" placeholder="Klasör seçin..." readonly>
                     <button class="btn btn-secondary" id="btnSelectMustahsilFolder">Klasör Seç</button>
@@ -1230,12 +1230,28 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
         btnSelectFolder.addEventListener('click', async () => {
             const { ipcRenderer } = require('electron');
             const result = await ipcRenderer.invoke('select-folder');
-            if (result.success) {
-                txtFolder.value = result.path;
-                showStatus(status3, 'Klasör seçildi! Excel dosyaları buraya kaydedilecek.', 'info');
+            if (result.success || result.cloud) {
+                txtFolder.value = result.path || 'Bulut (Excel otomatik iner)';
+                showStatus(
+                    status3,
+                    result.cloud
+                        ? 'Bulut kaydı aktif — Excel hazır olunca otomatik iner.'
+                        : 'Klasör seçildi! Excel dosyaları buraya kaydedilecek.',
+                    'info',
+                );
                 setTimeout(() => hideStatus(status3), 3000);
+            } else if (!result.canceled) {
+                showStatus(status3, result.msg || result.message || 'Klasör seçilemedi', 'error');
             }
         });
+
+        // Bulut: klasör zorunlu değil — otomatik bulut hedefi
+        if (window.__MUSAVIRIM_IS_CLOUD__) {
+            txtFolder.value = 'Bulut (Excel otomatik iner)';
+            const hint = document.getElementById('folderCloudHint');
+            if (hint) hint.style.display = '';
+            btnSelectFolder.textContent = 'Bulut ✓';
+        }
 
         btnExport.addEventListener('click', async () => {
             const selectedTypes = [];
@@ -1247,9 +1263,12 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
                 showStatus(status3, 'En az bir künye türü seçin!', 'error');
                 return;
             }
-            if (!txtFolder.value) {
+            if (!txtFolder.value && !window.__MUSAVIRIM_IS_CLOUD__) {
                 showStatus(status3, 'Kayıt klasörü seçin!', 'error');
                 return;
+            }
+            if (window.__MUSAVIRIM_IS_CLOUD__ && !txtFolder.value) {
+                txtFolder.value = 'Bulut (Excel otomatik iner)';
             }
             if (!txtBaslangic.value || !txtBitis.value) {
                 showStatus(status3, 'Tarih aralığı seçin!', 'error');
@@ -1291,10 +1310,12 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
 
                 if (result.success) {
                     const ekstra = result.message ? ` (${result.message})` : '';
-                    showStatus(status3, `[1/3] ${kunyeTuru}: ${result.count} künye kaydedildi ✓${ekstra}`, 'success');
-                    const fileName = result.filePath.split('\\').pop().split('/').pop();
-                    addFileToList(result.filePath, fileName, result.count);
-                    lastHksFile = result.filePath;
+                    const count = result.count || 0;
+                    showStatus(status3, `[1/3] ${kunyeTuru}: ${count} künye kaydedildi ✓${ekstra}`, 'success');
+                    const filePath = result.filePath || result.filename || kunyeTuru + '.xlsx';
+                    const fileName = String(filePath).split('\\').pop().split('/').pop();
+                    addFileToList(filePath, fileName, count);
+                    lastHksFile = filePath;
                 } else {
                     showStatus(status3, `[1/3] ${kunyeTuru}: ${result.message || 'Indirme basarisiz'}`, 'error');
                 }
@@ -1302,6 +1323,19 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
 
             if (!lastHksFile) {
                 showStatus(status3, 'HKS verisi indirilemedi, işlem durdu. Captcha/oturum veya sayfa kopmasi olabilir — tekrar giris yapip deneyin.', 'error');
+                btnExport.disabled = false;
+                btnExport.innerHTML = "Excel'e Aktar";
+                return;
+            }
+
+            // Bulut: Excel indirildi — mustahsil/portal adımları masaüstü klasör ister; şimdilik Excel yeterli
+            if (window.__MUSAVIRIM_IS_CLOUD__) {
+                progressFill.style.width = '100%';
+                showStatus(
+                    status3,
+                    'Excel buluta kaydedildi ve bilgisayarınıza indirildi. Mustahsil dönüşümü için Adım 4’ten dosya seçebilirsiniz.',
+                    'success',
+                );
                 btnExport.disabled = false;
                 btnExport.innerHTML = "Excel'e Aktar";
                 return;
@@ -1406,19 +1440,28 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
         btnSelectMustahsilFolder.addEventListener('click', async () => {
             const { ipcRenderer } = require('electron');
             const result = await ipcRenderer.invoke('select-folder');
-            if (result.success) {
-                txtMustahsilFolder.value = result.path;
+            if (result.success || result.cloud) {
+                txtMustahsilFolder.value = result.path || 'Bulut (Excel otomatik iner)';
             }
         });
+
+        if (window.__MUSAVIRIM_IS_CLOUD__) {
+            txtMustahsilFolder.value = 'Bulut (Excel otomatik iner)';
+            document.querySelectorAll('.folderCloudHint2').forEach((el) => { el.style.display = ''; });
+            btnSelectMustahsilFolder.textContent = 'Bulut ✓';
+        }
 
         btnConvertMustahsil.addEventListener('click', async () => {
             if (!txtHksFile.value) {
                 showStatus(status4, 'Önce HKS Excel dosyasını seçin!', 'error');
                 return;
             }
-            if (!txtMustahsilFolder.value) {
+            if (!txtMustahsilFolder.value && !window.__MUSAVIRIM_IS_CLOUD__) {
                 showStatus(status4, 'Kayıt klasörü seçin!', 'error');
                 return;
+            }
+            if (window.__MUSAVIRIM_IS_CLOUD__ && !txtMustahsilFolder.value) {
+                txtMustahsilFolder.value = 'Bulut (Excel otomatik iner)';
             }
 
             btnConvertMustahsil.disabled = true;
