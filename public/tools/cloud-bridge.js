@@ -619,19 +619,119 @@
       return { ok: true, text: '' };
     },
     async selectFolder() {
-      return { canceled: true };
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = '.xml,text/xml,application/xml';
+        // Chromium: klasor secimi
+        input.setAttribute('webkitdirectory', '');
+        input.setAttribute('directory', '');
+        input.onchange = () => {
+          const all = [...(input.files || [])];
+          const files = all.filter((f) => /\.xml$/i.test(f.name));
+          window.__STOK_XML_FILES__ = files;
+          if (!files.length) {
+            resolve({ ok: false, canceled: false, msg: 'Secilen klasorde XML yok.' });
+            return;
+          }
+          const top = files[0].webkitRelativePath
+            ? files[0].webkitRelativePath.split('/')[0]
+            : `${files.length} XML`;
+          resolve({
+            ok: true,
+            path: `Bulut: ${top} (${files.length} XML)`,
+            cloud: true,
+            count: files.length,
+          });
+        };
+        input.oncancel = () => resolve({ canceled: true });
+        input.click();
+      });
     },
     async selectSave() {
-      return { canceled: true };
+      return { canceled: true, msg: 'Bulutta Excel otomatik iner.' };
     },
-    async isle() {
-      return notify('Stok işleme bulutta dosya yükleme ile eklenecek.');
+    async isle(opts) {
+      const files = window.__STOK_XML_FILES__ || [];
+      if (!files.length) {
+        return { ok: false, msg: 'Once Klasor Seç ile XML klasorunu secin (bulutta dosya secilir).' };
+      }
+      const packed = [];
+      for (const f of files.slice(0, 400)) {
+        const buf = await f.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        packed.push({
+          name: f.webkitRelativePath || f.name,
+          base64: btoa(binary),
+        });
+      }
+      const created = await createJob('stok_isle', {
+        files: packed,
+        markers: opts?.markers || opts?.markerText || '',
+        firmaAdi: opts?.firmaAdi || '',
+        excludeKeywords: opts?.excludeKeywords || '',
+      });
+      if (!created.ok) return { ok: false, msg: created.msg || 'Worker job olusturulamadi' };
+      const done = await waitJob(created.job.id, 600000);
+      if (!done.ok) return { ok: false, msg: done.msg || 'Stok islemi basarisiz' };
+      if (done.excelBase64) {
+        try {
+          const bin = atob(String(done.excelBase64).replace(/^data:[^;]+;base64,/, ''));
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const blob = new Blob([bytes], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = done.filename || done.cikti || 'stok.xlsx';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          window.__STOK_LAST_EXCEL__ = { fileName: a.download, excelBase64: done.excelBase64 };
+        } catch (err) {
+          return { ok: false, msg: 'Excel indirilemedi: ' + err.message };
+        }
+      }
+      return {
+        ok: true,
+        xmlSayisi: done.xmlSayisi || packed.length,
+        satir: done.satir || 0,
+        urun: done.urun || 0,
+        cikti: done.filename || done.cikti || 'stok.xlsx',
+        ornekStok: done.ornekStok || [],
+        msg: 'Stok Excel indirildi (bulut).',
+      };
     },
     async openPath() {
+      const last = window.__STOK_LAST_EXCEL__;
+      if (!last?.excelBase64) return { ok: false, msg: 'Once stok Excel olusturun.' };
+      const bin = atob(String(last.excelBase64).replace(/^data:[^;]+;base64,/, ''));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = last.fileName || 'stok.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
       return { ok: true };
     },
     async showInFolder() {
-      return { ok: true };
+      return { ok: true, msg: 'Bulutta klasor yok — Excel Indirilenler\'e indi.' };
     },
   };
 

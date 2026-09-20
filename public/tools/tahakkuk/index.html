@@ -2355,18 +2355,18 @@ function renderWaState(s) {
 }
 
 $('waBaglanBtn').addEventListener('click', async () => {
-  showMsg('WhatsApp oturumu baslatiliyor — karekod bekleniyor...', 'info');
-  $('waQrYok').textContent = 'Karekod hazirlaniyor, biraz bekle...';
+  showMsg('WhatsApp oturumu baslatiliyor — kayitli oturum varsa otomatik baglanir...', 'info');
+  $('waQrYok').textContent = 'Baglaniyor / karekod hazirlaniyor...';
   $('waQrYok').style.display = 'block';
   $('waQr').style.display = 'none';
   $('waBaglanBtn').disabled = true;
   try {
     const r = await api().waStart();
     renderWaState(r);
-    if (r.ok && r.status === 'hazir') showMsg('WhatsApp hazir (zaten bagli).', 'ok');
-    else if (r.ok && (r.qrDataUrl || r.status === 'qr')) showMsg('Karekod geldi — telefonda okut.', 'ok');
+    if (r.ok && r.status === 'hazir') showMsg('WhatsApp hazir (bagli).', 'ok');
+    else if (r.ok && (r.qrDataUrl || r.status === 'qr')) showMsg('Karekod geldi — telefonda Linked Devices ile okut. Telefonda eski Ubuntu kaydini silip tekrar dene.', 'ok');
     else if (r.ok && r.status === 'baglaniyor') {
-      showMsg(r.msg || 'Karekod bekleniyor. Sag tarafta cikmazsa tekrar Baglan.', 'info');
+      showMsg(r.msg || 'Karekod bekleniyor.', 'info');
     } else {
       const msg = r.msg || r.hata || 'WhatsApp baslatilamadi';
       $('waQrYok').textContent = msg;

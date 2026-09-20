@@ -106,12 +106,12 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
 
     <div class="card">
       <div class="card-title"><span>02</span> XML klasörü</div>
-      <label class="field" for="klasor">Klasör yolu (alt klasörler dahil taranır)</label>
+      <label class="field" for="klasor">XML klasörü / dosyaları <span id="stokCloudHint" style="display:none;color:#4caf7c">(Bulut)</span></label>
       <div class="path-row">
         <input id="klasor" readonly placeholder="Faturaların olduğu klasörü seçin…" />
         <button type="button" class="btn btn-ghost" id="btnKlasor">Klasör Seç</button>
       </div>
-      <p class="hint">Örn. aylık “Aktarılacaklar” klasörleri tek bir üst klasör altında olabilir.</p>
+      <p class="hint" id="stokFolderHint">Örn. aylık “Aktarılacaklar” klasörleri tek bir üst klasör altında olabilir.</p>
     </div>
 
     <div class="card">
@@ -196,6 +196,14 @@ try { window.__MUSAVIRIM_CLOUD__ = JSON.parse(sessionStorage.getItem('__MUSAVIRI
     if (!$('exclude').value) {
       const def = await window.stokApp.defaultExclude();
       if (def?.exclude) $('exclude').value = def.exclude.join('\n');
+      else if (def?.text) $('exclude').value = def.text;
+    }
+    if (window.__MUSAVIRIM_IS_CLOUD__) {
+      const hint = $('stokCloudHint');
+      if (hint) hint.style.display = '';
+      const fh = $('stokFolderHint');
+      if (fh) fh.textContent = 'Bulutta: Klasör Seç tarayıcıdan XML klasörünü açar; Excel otomatik indirilir.';
+      $('klasor').placeholder = 'XML klasörü seçin (bulut)…';
     }
   }
 

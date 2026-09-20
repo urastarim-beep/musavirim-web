@@ -85,24 +85,39 @@ async function finishJob(id, ok, sonuc, hata) {
     .eq('id', id);
 }
 
-async function handleWaStart() {
+async function handleWaStart(job) {
   const client = getWa();
-  // Telefon "cihaz baglanamadi" → yarim oturum + eski QR; her Baglan'da temiz pairing
-  if (client.status !== 'hazir') {
-    try {
-      if (typeof client.stop === 'function') client.stop();
-    } catch (_) { /* ignore */ }
-    const state = await client.start({ fresh: true });
+  const fresh = !!(job?.payload && job.payload.fresh);
+  // Once hazir ise dokunma
+  if (client.status === 'hazir' && client.sock && !fresh) {
+    const state = client.getState();
     await syncWaState(state);
     return { ok: true, ...state };
   }
-  const state = await client.start();
+  // Varsayilan: kayitli oturumu geri yukle (fresh=false).
+  // fresh=true sadece "Oturumu Kapat" sonrasi veya kullanici zorla isterse.
+  try {
+    if (typeof client.stop === 'function' && client.status !== 'kapali') {
+      // stop intentional degilse auth silinmez
+      client._intentionalStop = false;
+      try {
+        if (client.sock) client.sock.end(undefined);
+      } catch (_) { /* ignore */ }
+      client.sock = null;
+    }
+  } catch (_) { /* ignore */ }
+  const state = await client.start({ fresh: !!fresh });
   await syncWaState(state);
   return { ok: true, ...state };
 }
 
 async function handleWaLogout() {
   const client = getWa();
+  if (typeof client.logout === 'function') {
+    const state = await client.logout();
+    await syncWaState(state);
+    return { ok: true, ...state };
+  }
   if (typeof client.stop === 'function') client.stop();
   await syncWaState({ status: 'kapali', qrDataUrl: null });
   return { ok: true, status: 'kapali' };
@@ -674,7 +689,7 @@ async function processJob(job) {
     let sonuc;
     switch (job.tip) {
       case 'wa_start':
-        sonuc = await handleWaStart();
+        sonuc = await handleWaStart(job);
         break;
       case 'wa_logout':
         sonuc = await handleWaLogout();
@@ -692,6 +707,9 @@ async function processJob(job) {
       case 'hks_indir':
         sonuc = await handleHksExport(job);
         break;
+      case 'stok_isle':
+        sonuc = await handleStokIsle(job);
+        break;
       default:
         throw new Error('Bilinmeyen tip: ' + job.tip);
     }
@@ -700,6 +718,61 @@ async function processJob(job) {
   } catch (err) {
     console.error('job hata', job.id, err);
     await finishJob(job.id, false, null, err.message || String(err));
+  }
+}
+
+async function handleStokIsle(job) {
+  const os = await import('os');
+  const fs = await import('fs');
+  const pathMod = await import('path');
+  const { isle } = require('./lib/stokMotor.cjs');
+  const p = job.payload || {};
+  const files = Array.isArray(p.files) ? p.files : [];
+  if (!files.length) throw new Error('XML dosyasi yok — once klasor/dosya secin');
+
+  const tmpRoot = pathMod.join(os.tmpdir(), 'musavirim-stok', String(job.id || Date.now()));
+  fs.mkdirSync(tmpRoot, { recursive: true });
+  try {
+    for (const f of files) {
+      const name = String(f.name || f.path || 'fatura.xml').replace(/\\/g, '/');
+      const rel = name.includes('/') ? name : name;
+      const dest = pathMod.join(tmpRoot, rel);
+      fs.mkdirSync(pathMod.dirname(dest), { recursive: true });
+      const b64 = String(f.base64 || f.content || '').replace(/^data:[^;]+;base64,/, '');
+      fs.writeFileSync(dest, Buffer.from(b64, 'base64'));
+    }
+    const markers = String(p.markers || '')
+      .split(/[\s,;]+/)
+      .map((m) => m.trim())
+      .filter(Boolean);
+    const excludeKeywords = String(p.excludeKeywords || '')
+      .split(/\r?\n/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const outPath = pathMod.join(tmpRoot, 'stok_cikti.xlsx');
+    const result = await isle({
+      klasor: tmpRoot,
+      markers,
+      excludeKeywords,
+      firmaAdi: p.firmaAdi || markers[0] || 'Firma',
+      ciktiYolu: outPath,
+    });
+    if (!result.ok) throw new Error(result.msg || 'Stok islemi basarisiz');
+    const buf = fs.readFileSync(result.cikti || outPath);
+    const filename = `${String(p.firmaAdi || markers[0] || 'Stok').replace(/[^\w\-]+/g, '_')}_Stok_Kontrol.xlsx`;
+    return {
+      ok: true,
+      ...result,
+      filename,
+      excelBase64: buf.toString('base64'),
+      cikti: filename,
+    };
+  } finally {
+    try {
+      fs.rmSync(tmpRoot, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -736,4 +809,24 @@ async function loop() {
 await mkdir(DATA_DIR, { recursive: true });
 await mkdir(path.join(DATA_DIR, 'whatsapp-auth'), { recursive: true });
 startHealthServer();
+
+// Kayitli WhatsApp oturumu varsa otomatik geri yukle
+try {
+  const fsSync = await import('fs');
+  const authDir = path.join(DATA_DIR, 'whatsapp-auth');
+  const hasCreds =
+    fsSync.existsSync(authDir) &&
+    fsSync.readdirSync(authDir).some((f) => /creds/i.test(f));
+  if (hasCreds) {
+    console.log('wa: kayitli oturum geri yukleniyor…');
+    const st = await getWa().start({ fresh: false });
+    await syncWaState(st);
+    console.log('wa: durum', st.status, st.userName || '');
+  } else {
+    await syncWaState({ status: 'kapali', qrDataUrl: null });
+  }
+} catch (e) {
+  console.warn('wa auto-restore', e.message);
+}
+
 loop();
